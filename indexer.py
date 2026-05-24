@@ -24,6 +24,10 @@ def index_directory(directory: str, project_id: str):
     from ast_chunker import chunk_file
     from embedder import embed_batch, check_embedding_ready
     from store import store_chunks, delete_file_chunks, update_file_metadata
+    from graph_store import (get_conn as get_graph_conn, upsert_symbol,
+                             upsert_relationship, delete_file_symbols,
+                             resolve_symbol_name, update_pagerank_scores)
+    from graph_extractor import extract_relationships
 
     ok, msg = check_embedding_ready()
     if not ok:
@@ -45,8 +49,14 @@ def index_directory(directory: str, project_id: str):
 
     print(f"Found {len(all_files)} files to index in {root}")
     total_chunks = 0
+    total_rels = 0
     errors = 0
     start_time = time.time()
+
+    graph_conn = get_graph_conn(project_id)
+
+    # Collect all pending relationships (need all symbols stored before resolving)
+    pending_rels = []
 
     for i, file_path in enumerate(all_files):
         print(f"[{i + 1}/{len(all_files)}] {file_path}")
@@ -54,6 +64,8 @@ def index_directory(directory: str, project_id: str):
             chunks = chunk_file(file_path)
             if not chunks:
                 continue
+
+            # Stage 1+2: embed and store chunks
             texts = [
                 f"File: {c.file}\nSymbol: {c.symbol} ({c.symbol_type})\n\n{c.chunk}"
                 for c in chunks
@@ -62,7 +74,14 @@ def index_directory(directory: str, project_id: str):
             delete_file_chunks(project_id, file_path)
             store_chunks(project_id, chunks, embeddings)
             total_chunks += len(chunks)
-            print(f"  -> {len(chunks)} chunks indexed")
+
+            # Stage 3: build graph
+            delete_file_symbols(graph_conn, file_path)
+            for chunk in chunks:
+                upsert_symbol(graph_conn, chunk)
+
+            rels = extract_relationships(file_path, chunks)
+            pending_rels.extend(rels)
 
             file_content = Path(file_path).read_bytes()
             file_hash = hashlib.sha256(file_content).hexdigest()[:16]
@@ -72,12 +91,33 @@ def index_directory(directory: str, project_id: str):
                 file_hash=file_hash,
                 symbol_count=len(chunks),
             )
+
+            print(f"  -> {len(chunks)} chunks, {len(rels)} relationships")
         except Exception as e:
             errors += 1
             print(f"  -> ERROR: {e}")
 
+    # Resolve relationship names → IDs and insert edges
+    print(f"\nResolving {len(pending_rels)} relationships...")
+    resolved = 0
+    for rel in pending_rels:
+        to_id = resolve_symbol_name(graph_conn, rel.to_symbol_name)
+        if to_id:
+            upsert_relationship(graph_conn, rel.from_symbol_id, to_id, rel.rel_type)
+            resolved += 1
+    total_rels = resolved
+    print(f"  -> {resolved}/{len(pending_rels)} resolved")
+
+    # Compute PageRank
+    print("Computing PageRank...")
+    pr_count = update_pagerank_scores(graph_conn)
+    print(f"  -> {pr_count} symbols ranked")
+
+    graph_conn.close()
+
     elapsed = time.time() - start_time
-    print(f"\nDone. {total_chunks} chunks indexed, {errors} errors, {elapsed:.1f}s")
+    print(f"\nDone. {total_chunks} chunks, {total_rels} edges, "
+          f"{errors} errors, {elapsed:.1f}s")
 
 
 def search(project_id: str, query: str, limit: int = 10):
@@ -118,10 +158,18 @@ if __name__ == "__main__":
     srch.add_argument('--project', required=True)
     srch.add_argument('--limit', type=int, default=10)
 
+    wtch = subparsers.add_parser('watch')
+    wtch.add_argument('directory')
+    wtch.add_argument('--project', required=True)
+
     args = parser.parse_args()
     if args.command == 'index':
         index_directory(args.directory, args.project)
     elif args.command == 'search':
         search(args.project, args.query, args.limit)
+    elif args.command == 'watch':
+        from watcher import watch
+        watch(args.directory, args.project)
     else:
         parser.print_help()
+

@@ -1,11 +1,13 @@
 ## Codebase Intelligence (codebase-intelligence MCP)
 
-When this MCP server is available, **prefer it over grep/Glob for code questions**.
-Hybrid search returns precise results in a single tool call vs file-by-file exploration.
+Prefer these tools over grep/Glob for structural code questions.
 
-- **Finding code by concept**: `search_code("user authentication flow")`
-- **Finding a specific function**: `search_code("validateUserSession")`
-- **Before making changes**: check `get_index_status` to ensure index is current
-- **After large refactors**: re-run indexer: `python indexer.py index /path/to/project --project <id>`
+- **Semantic search**: `search_code("user authentication flow")`
+- **Exact name search**: `search_code("validateUserSession")`
+- **Before ANY change**: `blast_radius("functionName")` — see what breaks
+- **Understanding a function**: `get_call_graph_tool("functionName")`
+- **New codebase orientation**: `get_repo_map()` — see the most important symbols
+- **Cleanup tasks**: `find_dead_code()` — find unused functions
+- **Index health**: `get_index_status()`
 
-Use grep/Glob for: text search in comments, string literals, config values not in source symbols.
+Rule: Call `blast_radius` before modifying any function with more than one dependent.
