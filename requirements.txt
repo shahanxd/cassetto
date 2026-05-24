@@ -1,0 +1,19 @@
+# Stage 1: Core
+fastmcp
+lancedb
+requests
+pyarrow
+
+# Stage 2: AST parsing
+tree-sitter
+tree-sitter-language-pack
+
+# Stage 3: Graph + PageRank
+duckdb
+networkx
+
+# Stage 4: File watching
+watchdog
+
+# Optional: Voyage AI embeddings (upgrade path)
+# voyageai
