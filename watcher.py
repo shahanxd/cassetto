@@ -1,13 +1,10 @@
 """
-Codebase Intelligence — File Watcher (Stage 4)
-Watches a directory for file changes and incrementally updates
-the search index, graph, and PageRank scores.
+File watcher — watches for saves/creates/deletes and incrementally updates
+the index + graph without re-processing the entire codebase.
 
-Only re-embeds changed symbols — not the whole file.
-PageRank is batched (at most once per 30 seconds).
-
-Usage:
-    python indexer.py watch <directory> --project <id>
+Changes are debounced (0.4s) so we don't process half-written files.
+PageRank is only recomputed every 30 seconds since it's expensive and
+doesn't need to be real-time.
 """
 import sys
 import time
@@ -24,19 +21,13 @@ from graph_extractor import extract_relationships
 from embedder import embed_batch, check_embedding_ready
 from config import SKIP_DIRS
 
-# Fix Windows console Unicode encoding
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 DEBOUNCE_SECONDS = 0.4
-PAGERANK_INTERVAL = 30  # seconds
+PAGERANK_INTERVAL = 30
 
 
 class CodeChangeHandler(FileSystemEventHandler):
-    """
-    Handles file system events and incrementally updates the index.
-    Changes are debounced (0.4s) to avoid processing partial saves.
-    PageRank is batched (every 30s) to avoid expensive recomputation.
-    """
 
     def __init__(self, project_id: str):
         self.project_id = project_id
@@ -58,14 +49,13 @@ class CodeChangeHandler(FileSystemEventHandler):
             self._handle_delete(event.src_path)
 
     def _schedule(self, path: str):
-        """Queue a file for processing if it's a supported source file."""
+        """Queue it if it's a file type we care about."""
         p = Path(path)
         if p.suffix in EXTENSION_MAP:
             if not any(skip in p.parts for skip in SKIP_DIRS):
                 self.pending[path] = time.time()
 
     def _handle_delete(self, path: str):
-        """Remove a deleted file from all stores."""
         p = Path(path)
         if p.suffix not in EXTENSION_MAP:
             return
@@ -77,13 +67,10 @@ class CodeChangeHandler(FileSystemEventHandler):
         self.graph_dirty = True
 
     def flush(self):
-        """
-        Process any pending file changes that have passed the debounce window.
-        Called from the main loop every 100ms.
-        """
+        """Called every 100ms from the main loop."""
         now = time.time()
 
-        # Process debounced file changes
+        # process files that have been sitting in the queue long enough
         to_process = [p for p, t in list(self.pending.items())
                       if now - t >= DEBOUNCE_SECONDS]
         for path in to_process:
@@ -91,11 +78,11 @@ class CodeChangeHandler(FileSystemEventHandler):
             try:
                 self._handle_change(path)
             except Exception as e:
-                print(f"[ERROR] Failed to update {path}: {e}")
+                print(f"[ERROR] {path}: {e}")
 
-        # Batch PageRank recomputation (at most once per 30s)
+        # don't recompute pagerank on every save — batch it
         if self.graph_dirty and now - self.last_pagerank > PAGERANK_INTERVAL:
-            print("[PAGERANK] Recomputing...")
+            print("[PAGERANK] recomputing...")
             conn = get_graph_conn(self.project_id)
             count = update_pagerank_scores(conn)
             conn.close()
@@ -104,30 +91,22 @@ class CodeChangeHandler(FileSystemEventHandler):
             print(f"[PAGERANK] {count} symbols ranked")
 
     def _handle_change(self, file_path: str):
-        """
-        Incrementally update a single file:
-        1. Parse new AST chunks
-        2. Diff against stored chunks
-        3. Delete old data from all stores
-        4. Re-embed and store new chunks
-        5. Rebuild graph edges for this file
-        """
-        # Skip if file no longer exists (moved/renamed)
+        """Re-index a single file: parse, diff, embed, store, graph."""
         if not Path(file_path).exists():
             self._handle_delete(file_path)
             return
 
         print(f"[CHANGE] {file_path}")
 
-        # 1. Parse new chunks
         new_chunks = chunk_file(file_path)
 
-        # 2. Get old chunks from index and diff
+        # diff to see what actually changed (for logging)
         old_chunks = get_chunks_for_file(self.project_id, file_path)
         added, modified, deleted_ids = diff_chunks(old_chunks, new_chunks)
         print(f"  +{len(added)} ~{len(modified)} -{len(deleted_ids)}")
 
-        # 3. Remove all old data for this file (simpler than surgical update)
+        # wipe old data and re-insert everything for this file.
+        # surgical partial updates aren't worth the complexity for single files.
         delete_file_chunks(self.project_id, file_path)
         conn = get_graph_conn(self.project_id)
         delete_file_symbols(conn, file_path)
@@ -136,7 +115,6 @@ class CodeChangeHandler(FileSystemEventHandler):
             conn.close()
             return
 
-        # 4. Re-embed and store all chunks for this file
         texts = [
             f"File: {c.file}\nSymbol: {c.symbol} ({c.symbol_type})\n\n{c.chunk}"
             for c in new_chunks
@@ -144,11 +122,9 @@ class CodeChangeHandler(FileSystemEventHandler):
         embeddings = embed_batch(texts)
         store_chunks(self.project_id, new_chunks, embeddings)
 
-        # 5. Rebuild graph nodes
         for chunk in new_chunks:
             upsert_symbol(conn, chunk)
 
-        # 6. Re-extract and resolve relationships
         rels = extract_relationships(file_path, new_chunks)
         resolved = 0
         for rel in rels:
@@ -161,15 +137,14 @@ class CodeChangeHandler(FileSystemEventHandler):
         self.graph_dirty = True
         self._update_count += 1
 
-        print(f"  ✓ {len(new_chunks)} chunks, {resolved} edges "
-              f"(total updates: {self._update_count})")
+        print(f"  ok: {len(new_chunks)} chunks, {resolved} edges "
+              f"(update #{self._update_count})")
 
 
 def watch(directory: str, project_id: str):
-    """Start watching a directory for file changes."""
     ok, msg = check_embedding_ready()
     if not ok:
-        print(f"ERROR: Embedding not available — {msg}")
+        print(f"ERROR: {msg}")
         sys.exit(1)
     print(f"Embedding backend: {msg}")
 
@@ -189,7 +164,7 @@ def watch(directory: str, project_id: str):
             time.sleep(0.1)
             handler.flush()
     except KeyboardInterrupt:
-        print("\nStopping watcher...")
+        print("\nStopping...")
         observer.stop()
     observer.join()
-    print("Watcher stopped.")
+    print("Done.")

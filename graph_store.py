@@ -1,17 +1,13 @@
 """
-Codebase Intelligence — Graph Store (Stage 3)
-DuckDB-backed call graph with PageRank scoring.
+Graph database for the call graph, stored in DuckDB.
 
-Stores:
-  - symbols: every function/class extracted by AST chunker
-  - relationships: calls/imports edges between symbols
-  - pagerank_score: how central each symbol is in the codebase
+Two tables:
+  - symbols: every function/class we found during indexing
+  - relationships: "X calls Y" edges between symbols
 
-Queries:
-  - Call graph: who calls X, what does X call
-  - Blast radius: what breaks if X changes (recursive traversal)
-  - Dead code: functions nothing calls
-  - Repo map: PageRank-ranked overview of most important symbols
+On top of this we compute PageRank (via networkx) to figure out which
+symbols are most central to the codebase. We also support blast radius
+queries — "if I change X, what else might break?" — using recursive SQL.
 """
 import hashlib
 import duckdb
@@ -19,10 +15,7 @@ from pathlib import Path
 from config import DATA_DIR
 
 
-# ── Connection management ──────────────────────────────────────
-
 def get_conn(project_id: str) -> duckdb.DuckDBPyConnection:
-    """Open (or create) the DuckDB graph database for a project."""
     db_path = str(DATA_DIR / project_id / "graph.duckdb")
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
     conn = duckdb.connect(db_path)
@@ -31,7 +24,6 @@ def get_conn(project_id: str) -> duckdb.DuckDBPyConnection:
 
 
 def _setup(conn: duckdb.DuckDBPyConnection):
-    """Create tables if they don't exist."""
     conn.execute("""
         CREATE TABLE IF NOT EXISTS symbols (
             id VARCHAR PRIMARY KEY,
@@ -53,10 +45,9 @@ def _setup(conn: duckdb.DuckDBPyConnection):
     """)
 
 
-# ── Write operations ───────────────────────────────────────────
+# ── writes ─────────────────────────────────────────────────────
 
 def upsert_symbol(conn: duckdb.DuckDBPyConnection, chunk):
-    """Insert or update a symbol from an AST chunk."""
     conn.execute("""
         INSERT OR REPLACE INTO symbols (id, name, file, symbol_type, start_line, end_line)
         VALUES (?, ?, ?, ?, ?, ?)
@@ -66,7 +57,7 @@ def upsert_symbol(conn: duckdb.DuckDBPyConnection, chunk):
 
 def upsert_relationship(conn: duckdb.DuckDBPyConnection,
                          from_id: str, to_id: str, rel_type: str):
-    """Insert a relationship edge (idempotent via hash-based ID)."""
+    # deterministic ID from the edge triple so we don't insert duplicates
     rel_id = hashlib.sha256(
         f"{from_id}:{to_id}:{rel_type}".encode()
     ).hexdigest()[:16]
@@ -77,8 +68,7 @@ def upsert_relationship(conn: duckdb.DuckDBPyConnection,
 
 
 def delete_file_symbols(conn: duckdb.DuckDBPyConnection, file_path: str):
-    """Remove all symbols and their relationships for a file."""
-    # Get symbol IDs for this file
+    """Nuke all symbols + their edges for a file (used before re-indexing it)."""
     ids = conn.execute(
         "SELECT id FROM symbols WHERE file = ?", (file_path,)
     ).fetchall()
@@ -97,18 +87,19 @@ def delete_file_symbols(conn: duckdb.DuckDBPyConnection, file_path: str):
 
 def resolve_symbol_name(conn: duckdb.DuckDBPyConnection,
                          name: str) -> str | None:
-    """Look up a symbol ID by name. Returns first match or None."""
+    """Look up a symbol ID by name. If there are multiple with the same
+    name (common for 'main', '__init__', etc) we just grab the first one."""
     result = conn.execute(
         "SELECT id FROM symbols WHERE name = ? LIMIT 1", (name,)
     ).fetchone()
     return result[0] if result else None
 
 
-# ── Query operations ───────────────────────────────────────────
+# ── queries ────────────────────────────────────────────────────
 
 def get_call_graph(conn: duckdb.DuckDBPyConnection,
                     symbol_name: str) -> dict:
-    """Who calls this symbol, and what does it call."""
+    """Who calls this, and what does it call."""
     callers = conn.execute("""
         SELECT s.name, s.file, s.start_line
         FROM relationships r
@@ -139,12 +130,12 @@ def get_call_graph(conn: duckdb.DuckDBPyConnection,
 def get_blast_radius(conn: duckdb.DuckDBPyConnection,
                       symbol_name: str, max_depth: int = 3) -> dict:
     """
-    Find everything that transitively depends on this symbol.
-    Uses WITH RECURSIVE — the 'what breaks if I change X' query.
+    The "what breaks if I touch this?" query.
+    Walks the call graph backwards recursively: who calls me, who calls
+    them, etc. up to max_depth hops.
     """
     dependents = conn.execute("""
         WITH RECURSIVE deps AS (
-            -- Base case: direct callers of the target symbol
             SELECT r.from_id AS dep_id, 1 AS depth
             FROM relationships r
             JOIN symbols s ON r.to_id = s.id
@@ -152,7 +143,6 @@ def get_blast_radius(conn: duckdb.DuckDBPyConnection,
 
             UNION ALL
 
-            -- Recursive case: callers of callers
             SELECT r.from_id, deps.depth + 1
             FROM relationships r
             JOIN deps ON r.to_id = deps.dep_id
@@ -176,7 +166,7 @@ def get_blast_radius(conn: duckdb.DuckDBPyConnection,
 
 
 def get_dead_code(conn: duckdb.DuckDBPyConnection) -> list[dict]:
-    """Find functions that nothing calls (excluding common entry points)."""
+    """Functions nothing calls. Excludes obvious entry points and tests."""
     results = conn.execute("""
         SELECT s.name, s.file, s.start_line
         FROM symbols s
@@ -194,10 +184,10 @@ def get_dead_code(conn: duckdb.DuckDBPyConnection) -> list[dict]:
     return [{"name": r[0], "file": r[1], "line": r[2]} for r in results]
 
 
-# ── PageRank ───────────────────────────────────────────────────
+# ── pagerank ───────────────────────────────────────────────────
 
 def compute_pagerank(conn: duckdb.DuckDBPyConnection) -> dict[str, float]:
-    """Compute PageRank over the call graph using NetworkX."""
+    """Build a networkx graph from the edges table and run PageRank."""
     import networkx as nx
 
     edges = conn.execute(
@@ -210,16 +200,17 @@ def compute_pagerank(conn: duckdb.DuckDBPyConnection) -> dict[str, float]:
     if not G.nodes:
         return {}
 
-    scores = nx.pagerank(G, alpha=0.85, max_iter=100)
-    return scores
+    return nx.pagerank(G, alpha=0.85, max_iter=100)
 
 
 def update_pagerank_scores(conn: duckdb.DuckDBPyConnection):
-    """Recompute and persist PageRank scores in the symbols table."""
+    """Recompute PageRank and write scores back to the symbols table."""
     scores = compute_pagerank(conn)
-    for symbol_id, score in scores.items():
-        conn.execute(
-            "UPDATE symbols SET pagerank_score = ? WHERE id = ?",
-            (score, symbol_id)
-        )
+    if not scores:
+        return 0
+    # batch update via executemany instead of one query per symbol
+    conn.executemany(
+        "UPDATE symbols SET pagerank_score = ? WHERE id = ?",
+        [(score, sid) for sid, score in scores.items()]
+    )
     return len(scores)

@@ -1,9 +1,6 @@
 """
-Codebase Intelligence — MCP Server
-FastMCP server exposing search, graph, and status tools to LLMs.
-
-Run directly: python server.py
-Register in Antigravity's mcp_config.json
+MCP server — this is the interface that LLMs (Claude, etc) talk to.
+Exposes 6 tools: search, call graph, blast radius, dead code, repo map, status.
 """
 import os
 import json
@@ -64,8 +61,6 @@ def get_index_status() -> str:
         f"- Project: {PROJECT_ID}"
     )
 
-
-# ── Stage 3: Graph tools ──────────────────────────────────────
 
 @mcp.tool()
 def get_call_graph_tool(symbol_name: str) -> str:
@@ -140,4 +135,3 @@ def get_repo_map(max_symbols: int = 50) -> str:
 
 if __name__ == "__main__":
     mcp.run()
-

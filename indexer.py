@@ -1,26 +1,23 @@
 """
-Codebase Intelligence — Indexer
-CLI entry point for indexing a codebase and searching the index.
+CLI entry point. Three commands:
 
-Usage:
-    python indexer.py index <directory> --project <id>
-    python indexer.py search <query> --project <id> [--limit N]
+    python indexer.py index <dir> --project <id>    # full index
+    python indexer.py search <query> --project <id>  # quick search
+    python indexer.py watch <dir> --project <id>     # live updates
 """
 import sys
-import json
 import time
 import hashlib
 import argparse
 from pathlib import Path
 
-# Fix Windows console Unicode encoding
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
 from config import SKIP_DIRS, SUPPORTED_EXTENSIONS
 
 
 def index_directory(directory: str, project_id: str):
-    """Walk a directory and index all supported files."""
+    """Full index of a directory: parse, embed, store, build graph."""
     from ast_chunker import chunk_file
     from embedder import embed_batch, check_embedding_ready
     from store import store_chunks, delete_file_chunks, update_file_metadata
@@ -31,7 +28,7 @@ def index_directory(directory: str, project_id: str):
 
     ok, msg = check_embedding_ready()
     if not ok:
-        print(f"ERROR: Embedding not available — {msg}")
+        print(f"ERROR: {msg}")
         sys.exit(1)
     print(f"Embedding backend: {msg}")
 
@@ -55,7 +52,9 @@ def index_directory(directory: str, project_id: str):
 
     graph_conn = get_graph_conn(project_id)
 
-    # Collect all pending relationships (need all symbols stored before resolving)
+    # we collect relationships first, then resolve them all at the end.
+    # reason: a function in file A might call a function in file B, but
+    # file B might not be indexed yet when we process file A.
     pending_rels = []
 
     for i, file_path in enumerate(all_files):
@@ -65,7 +64,7 @@ def index_directory(directory: str, project_id: str):
             if not chunks:
                 continue
 
-            # Stage 1+2: embed and store chunks
+            # embed and store in LanceDB + SQLite
             texts = [
                 f"File: {c.file}\nSymbol: {c.symbol} ({c.symbol_type})\n\n{c.chunk}"
                 for c in chunks
@@ -75,14 +74,16 @@ def index_directory(directory: str, project_id: str):
             store_chunks(project_id, chunks, embeddings)
             total_chunks += len(chunks)
 
-            # Stage 3: build graph
+            # build graph nodes
             delete_file_symbols(graph_conn, file_path)
             for chunk in chunks:
                 upsert_symbol(graph_conn, chunk)
 
+            # extract call relationships (resolved later)
             rels = extract_relationships(file_path, chunks)
             pending_rels.extend(rels)
 
+            # track file metadata for staleness detection
             file_content = Path(file_path).read_bytes()
             file_hash = hashlib.sha256(file_content).hexdigest()[:16]
             update_file_metadata(
@@ -92,13 +93,13 @@ def index_directory(directory: str, project_id: str):
                 symbol_count=len(chunks),
             )
 
-            print(f"  -> {len(chunks)} chunks, {len(rels)} relationships")
+            print(f"  -> {len(chunks)} chunks, {len(rels)} calls")
         except Exception as e:
             errors += 1
             print(f"  -> ERROR: {e}")
 
-    # Resolve relationship names → IDs and insert edges
-    print(f"\nResolving {len(pending_rels)} relationships...")
+    # now that all symbols are stored, resolve "calls X" -> actual symbol IDs
+    print(f"\nResolving {len(pending_rels)} call relationships...")
     resolved = 0
     for rel in pending_rels:
         to_id = resolve_symbol_name(graph_conn, rel.to_symbol_name)
@@ -106,9 +107,9 @@ def index_directory(directory: str, project_id: str):
             upsert_relationship(graph_conn, rel.from_symbol_id, to_id, rel.rel_type)
             resolved += 1
     total_rels = resolved
-    print(f"  -> {resolved}/{len(pending_rels)} resolved")
+    print(f"  -> {resolved}/{len(pending_rels)} resolved "
+          f"(rest are stdlib/builtins not in our index)")
 
-    # Compute PageRank
     print("Computing PageRank...")
     pr_count = update_pagerank_scores(graph_conn)
     print(f"  -> {pr_count} symbols ranked")
@@ -121,7 +122,7 @@ def index_directory(directory: str, project_id: str):
 
 
 def search(project_id: str, query: str, limit: int = 10):
-    """Search the index and print results."""
+    """Quick CLI search for testing."""
     from embedder import embed_text, check_embedding_ready
     from store import hybrid_search
 
@@ -172,4 +173,3 @@ if __name__ == "__main__":
         watch(args.directory, args.project)
     else:
         parser.print_help()
-

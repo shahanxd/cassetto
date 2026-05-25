@@ -1,21 +1,19 @@
 """
-Codebase Intelligence — AST Chunker (Stage 2)
-Replaces naive chunker with Tree-sitter AST parsing.
-Every chunk maps to exactly one function, class, method, or interface.
+AST-based code chunker using tree-sitter.
 
-Uses tree-sitter-language-pack for 170+ language support in one install.
-Same chunk_file() interface as chunker.py — drop-in replacement.
+Parses source files into their actual structure (functions, classes, methods)
+instead of guessing with regex. Each chunk = one real symbol with exact
+line boundaries.
 
-NOTE: Built for tree-sitter >= 0.25.x API where node properties are methods:
-  node.kind(), node.start_byte(), node.child(i), node.child_count(), etc.
+Supports 12 languages via tree-sitter-language-pack.
+Built for tree-sitter 0.25.x where most node accessors are methods, not properties.
 """
 import hashlib
 from pathlib import Path
 from dataclasses import dataclass
-from config import SUPPORTED_EXTENSIONS, MAX_CHUNK_SIZE, MIN_CHUNK_SIZE
+from config import MAX_CHUNK_SIZE, MIN_CHUNK_SIZE
 
-# --- Language configuration ---
-
+# which file extension maps to which tree-sitter grammar
 EXTENSION_MAP = {
     '.py': 'python',
     '.js': 'javascript',
@@ -34,6 +32,7 @@ EXTENSION_MAP = {
     '.hpp': 'cpp',
 }
 
+# AST node types worth extracting as standalone chunks, per language
 SYMBOL_TYPES = {
     'python': {
         'function_definition', 'class_definition', 'decorated_definition',
@@ -76,14 +75,13 @@ SYMBOL_TYPES = {
     },
 }
 
-# Identifier node types used to extract symbol names
+# node types that hold a symbol's name
 _NAME_KINDS = {'identifier', 'property_identifier', 'name',
                'field_identifier', 'type_identifier'}
 
 
 @dataclass
 class Chunk:
-    """A chunk of source code extracted from a file via AST parsing."""
     id: str
     file: str
     symbol: str
@@ -96,10 +94,7 @@ class Chunk:
 
 
 def chunk_file(file_path: str) -> list[Chunk]:
-    """
-    Parse a source file with Tree-sitter and extract one chunk per symbol.
-    Drop-in replacement for chunker.chunk_file() — same interface.
-    """
+    """Parse a source file and return one Chunk per top-level symbol."""
     path = Path(file_path)
     lang_name = EXTENSION_MAP.get(path.suffix)
     if not lang_name:
@@ -114,29 +109,28 @@ def chunk_file(file_path: str) -> list[Chunk]:
     if not source.strip():
         return []
 
-    # Parse with tree-sitter (accepts str in 0.25.x)
     try:
         from tree_sitter_language_pack import get_parser
         parser = get_parser(lang_name)
         tree = parser.parse(source)
     except Exception as e:
-        print(f"  [WARN] Tree-sitter parse failed for {file_path}: {e}")
+        print(f"  [WARN] tree-sitter failed on {file_path}: {e}")
         return []
 
     root = tree.root_node()
 
-    # Log parse errors but don't skip — tree-sitter is error-tolerant
     if root.has_error():
-        print(f"  [WARN] Syntax errors in {file_path} — parsing what's valid")
+        print(f"  [WARN] syntax errors in {file_path}, parsing what we can")
 
-    # Walk AST and extract symbol nodes
-    # IMPORTANT: pass source_bytes for slicing — tree-sitter byte offsets
-    # are UTF-8 byte positions, not Python string character positions
+    # byte offsets from tree-sitter are UTF-8 byte positions, not python
+    # string indices. we pass source_bytes everywhere so slicing is correct
+    # even when the file has multi-byte chars (like em-dashes in docstrings).
     symbol_types = SYMBOL_TYPES.get(lang_name, set())
     chunks: list[Chunk] = []
     _walk(root, source_bytes, file_path, lang_name, symbol_types, chunks)
 
-    # Whole-file fallback if no symbols found
+    # if the file has no functions/classes (e.g. a config file), treat the
+    # whole thing as one chunk so it still shows up in search
     if not chunks:
         file_hash = hashlib.sha256(source_bytes).hexdigest()[:16]
         chunk_id = hashlib.sha256(
@@ -160,11 +154,9 @@ def chunk_file(file_path: str) -> list[Chunk]:
 def _walk(node, source_bytes: bytes, file_path: str, lang_name: str,
           symbol_types: set[str], chunks: list[Chunk]):
     """
-    Recursively walk the AST and extract symbol nodes as chunks.
-    When a symbol is found, DON'T recurse into it — prevents duplicates.
-
-    source_bytes must be the raw UTF-8 bytes — tree-sitter byte offsets
-    are positions in the byte stream, not character positions.
+    Walk the AST recursively. When we hit a symbol node (function, class, etc),
+    grab it as a chunk and stop recursing into it — otherwise nested methods
+    would show up twice.
     """
     node_kind = node.kind()
 
@@ -172,10 +164,8 @@ def _walk(node, source_bytes: bytes, file_path: str, lang_name: str,
         chunk_text = source_bytes[node.start_byte():node.end_byte()].decode(
             'utf-8', errors='ignore')
 
-        # Truncate oversized chunks
         if len(chunk_text) > MAX_CHUNK_SIZE:
-            chunk_text = chunk_text[:MAX_CHUNK_SIZE] + \
-                "\n# [truncated — function too large]"
+            chunk_text = chunk_text[:MAX_CHUNK_SIZE] + "\n# [truncated]"
 
         symbol = _symbol_name(node, source_bytes) or f"anon_{node.start_position().row}"
         ast_hash = hashlib.sha256(chunk_text.encode()).hexdigest()[:16]
@@ -195,31 +185,30 @@ def _walk(node, source_bytes: bytes, file_path: str, lang_name: str,
                 language=lang_name,
                 ast_hash=ast_hash,
             ))
-        return  # Don't recurse into found symbols
+        return
 
-    # Recurse into children
     for i in range(node.child_count()):
         _walk(node.child(i), source_bytes, file_path, lang_name,
               symbol_types, chunks)
 
 
 def _symbol_name(node, source_bytes: bytes) -> str | None:
-    """Extract the identifier name from a symbol AST node."""
-    # Primary: use tree-sitter's field-based access (most reliable)
+    """Pull the name out of a function/class/method AST node."""
+    # tree-sitter grammars tag the name with a 'name' field
     name_node = node.child_by_field_name('name')
     if name_node:
         return source_bytes[name_node.start_byte():name_node.end_byte()].decode(
             'utf-8', errors='ignore')
 
-    # Fallback: scan direct children for identifier nodes
+    # fallback: scan direct children for identifier-like nodes
     for i in range(node.child_count()):
         child = node.child(i)
         if child.kind() in _NAME_KINDS:
             return source_bytes[child.start_byte():child.end_byte()].decode(
                 'utf-8', errors='ignore')
 
-    # For decorated definitions (Python @decorator), look inside the
-    # wrapped function/class definition
+    # python decorated definitions (@decorator above a def/class) — dig
+    # one level deeper to find the actual function name
     if node.kind() == 'decorated_definition':
         for i in range(node.child_count()):
             child = node.child(i)
@@ -230,15 +219,9 @@ def _symbol_name(node, source_bytes: bytes) -> str | None:
 
 def diff_chunks(old_chunks: list[dict], new_chunks: list[Chunk]):
     """
-    Compare old (from DB) and new (freshly parsed) chunks for a file.
-    Used for incremental updates in Stage 4.
-
-    Args:
-        old_chunks: list of dicts with 'id' and 'ast_hash'
-        new_chunks: list of Chunk instances (freshly parsed)
-
-    Returns:
-        (added, modified, deleted_ids)
+    Compare what's stored vs what we just parsed.
+    Returns (added, modified, deleted_ids) so the watcher knows
+    what actually changed.
     """
     old = {c['id']: c['ast_hash'] for c in old_chunks}
     new = {c.id: c for c in new_chunks}

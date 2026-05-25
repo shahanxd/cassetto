@@ -1,26 +1,26 @@
 """
-Codebase Intelligence — Embedder
-Generates vector embeddings for code chunks using either:
-  - Ollama (local, default) with nomic-embed-text
-  - Voyage AI (API, optional upgrade) with voyage-code-3
+Embedding layer — turns code text into 768-dim vectors.
+
+Default backend is Ollama running locally (nomic-embed-text model).
+Optional Voyage AI backend for better quality at the cost of API calls.
 """
 import requests
+from config import EMBEDDING_BACKEND, OLLAMA_URL, OLLAMA_MODEL
 
 
 def embed_text(text: str) -> list[float]:
-    """Get embedding vector for a single text."""
-    from config import EMBEDDING_BACKEND
+    """Embed a single string. Used for search queries."""
     if EMBEDDING_BACKEND == "voyage":
         return _embed_voyage(text)
     return _embed_ollama(text)
 
 
 def embed_batch(texts: list[str]) -> list[list[float]]:
-    """Embed multiple texts. Returns list of embedding vectors."""
-    from config import EMBEDDING_BACKEND
+    """Embed a list of strings. Used during indexing."""
     if EMBEDDING_BACKEND == "voyage":
         return _embed_voyage_batch(texts)
-    # Ollama doesn't support true batching — loop with progress
+    # ollama doesn't have a native batch endpoint, so we loop.
+    # progress is printed every 10 chunks to show it's not stuck.
     embeddings = []
     for i, text in enumerate(texts):
         if i % 10 == 0 and len(texts) > 10:
@@ -30,9 +30,9 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
 
 
 def check_embedding_ready() -> tuple[bool, str]:
-    """Verify that the embedding backend is available."""
-    from config import EMBEDDING_BACKEND, OLLAMA_URL, VOYAGE_API_KEY
+    """Quick health check — is the embedding backend reachable?"""
     if EMBEDDING_BACKEND == "voyage":
+        from config import VOYAGE_API_KEY
         if not VOYAGE_API_KEY:
             return False, "VOYAGE_API_KEY env var not set"
         return True, "Voyage AI ready"
@@ -47,12 +47,16 @@ def check_embedding_ready() -> tuple[bool, str]:
         return False, f"Ollama check failed: {e}"
 
 
-# --- Private embedding backends ---
+# ── backends ────────────────────────────────────────────────────
+
+# reuse TCP connections to ollama — saves ~20ms per request on
+# large indexes where we make thousands of calls
+_session = requests.Session()
+
 
 def _embed_ollama(text: str) -> list[float]:
-    """Get embedding via local Ollama instance."""
-    from config import OLLAMA_URL, OLLAMA_MODEL
-    response = requests.post(
+    """Single embedding via local Ollama instance."""
+    response = _session.post(
         f"{OLLAMA_URL}/api/embeddings",
         json={"model": OLLAMA_MODEL, "prompt": text},
         timeout=60,
@@ -62,20 +66,16 @@ def _embed_ollama(text: str) -> list[float]:
 
 
 def _embed_voyage_batch(texts: list[str]) -> list[list[float]]:
-    """Batch embed via Voyage AI API."""
+    """Batch embedding via Voyage AI API."""
     from config import VOYAGE_API_KEY, VOYAGE_MODEL
     try:
         import voyageai
     except ImportError:
-        raise ImportError(
-            "voyageai package required for Voyage backend. "
-            "Install with: pip install voyageai"
-        )
+        raise ImportError("pip install voyageai")
     client = voyageai.Client(api_key=VOYAGE_API_KEY)
     result = client.embed(texts, model=VOYAGE_MODEL, input_type="document")
     return result.embeddings
 
 
 def _embed_voyage(text: str) -> list[float]:
-    """Single-text embed via Voyage AI."""
     return _embed_voyage_batch([text])[0]
