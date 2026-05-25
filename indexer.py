@@ -1,9 +1,9 @@
 """
-CLI entry point. Three commands:
+Cassetto — CLI entry point.
 
-    python indexer.py index <dir> --project <id>    # full index
-    python indexer.py search <query> --project <id>  # quick search
-    python indexer.py watch <dir> --project <id>     # live updates
+    cassetto index <dir> --project <id>     # full index
+    cassetto search <query> --project <id>  # quick search
+    cassetto watch <dir> --project <id>     # live updates
 """
 import sys
 import time
@@ -146,8 +146,8 @@ def search(project_id: str, query: str, limit: int = 10):
         print()
 
 
-if __name__ == "__main__":
-    parser = argparse.ArgumentParser(description="Codebase Intelligence Indexer")
+def main():
+    parser = argparse.ArgumentParser(description="Cassetto — code intelligence for LLMs")
     subparsers = parser.add_subparsers(dest='command')
 
     idx = subparsers.add_parser('index')
@@ -173,3 +173,7 @@ if __name__ == "__main__":
         watch(args.directory, args.project)
     else:
         parser.print_help()
+
+
+if __name__ == "__main__":
+    main()

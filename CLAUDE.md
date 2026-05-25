@@ -1,6 +1,6 @@
-## Codebase Intelligence (codebase-intelligence MCP)
+## Cassetto (MCP tools)
 
-Prefer these tools over grep/Glob for structural code questions.
+Prefer these tools over grep/glob for structural code questions.
 
 - **Semantic search**: `search_code("user authentication flow")`
 - **Exact name search**: `search_code("validateUserSession")`

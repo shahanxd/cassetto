@@ -1,5 +1,5 @@
 """
-MCP server — this is the interface that LLMs (Claude, etc) talk to.
+Cassetto — MCP server.
 Exposes 6 tools: search, call graph, blast radius, dead code, repo map, status.
 """
 import os
@@ -8,9 +8,9 @@ from mcp.server.fastmcp import FastMCP
 from embedder import embed_text, check_embedding_ready
 from store import hybrid_search, get_indexed_files, get_sqlite_conn
 
-PROJECT_ID = os.getenv("CI_PROJECT_ID", "default")
+PROJECT_ID = os.getenv("CASSETTO_PROJECT_ID", "default")
 
-mcp = FastMCP("codebase-intelligence")
+mcp = FastMCP("cassetto")
 
 
 @mcp.tool()

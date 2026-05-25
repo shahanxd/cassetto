@@ -6,7 +6,7 @@ This is a local code intelligence system. You index a codebase once, and then an
 
 There are three phases: **index**, **serve**, and **watch**.
 
-### Phase 1: Indexing (`python indexer.py index <dir> --project <id>`)
+### Phase 1: Indexing (`cassetto index <dir> --project <id>`)
 
 The indexer walks your project directory and processes every supported source file through this pipeline:
 
@@ -43,7 +43,7 @@ The MCP server exposes 6 tools that LLMs can call:
 | `get_repo_map(50)` | Top N most important symbols ranked by PageRank. Good for getting oriented in a new codebase. |
 | `get_index_status()` | How many files and chunks are indexed. |
 
-### Phase 3: Watching (`python indexer.py watch <dir> --project <id>`)
+### Phase 3: Watching (`cassetto watch <dir> --project <id>`)
 
 The file watcher uses Watchdog to monitor the directory. When you save a file:
 
@@ -58,7 +58,7 @@ The file watcher uses Watchdog to monitor the directory. When you save a file:
 ## Where Data Lives
 
 ```
-~/.codebase-intelligence/<project-id>/
+~/.cassetto/<project-id>/
 ├── vectors/              # LanceDB — 768-dim embedding vectors
 │   └── chunks.lance/
 ├── index.db              # SQLite — FTS5 keyword index + file metadata

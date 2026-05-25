@@ -18,7 +18,7 @@ import subprocess
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
-os.environ["CI_PROJECT_ID"] = "sparrow"
+os.environ["CASSETTO_PROJECT_ID"] = "sparrow"
 
 SPARROW = str(Path(__file__).parent / "sparrow")
 

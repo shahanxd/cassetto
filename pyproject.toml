@@ -1,0 +1,37 @@
+[build-system]
+requires = ["setuptools>=68.0", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "cassetto"
+version = "1.0.0"
+description = "Give your LLM structural awareness of any codebase via MCP"
+readme = "README.md"
+license = "MIT"
+requires-python = ">=3.11"
+authors = [{name = "Shahan"}]
+keywords = ["mcp", "code-intelligence", "tree-sitter", "semantic-search", "call-graph", "claude"]
+
+dependencies = [
+    "fastmcp",
+    "lancedb",
+    "requests",
+    "pyarrow",
+    "tree-sitter",
+    "tree-sitter-language-pack",
+    "duckdb",
+    "networkx",
+    "scipy",
+    "watchdog",
+]
+
+[project.urls]
+Homepage = "https://github.com/shahanxd/cassetto"
+Repository = "https://github.com/shahanxd/cassetto"
+
+[project.scripts]
+cassetto = "indexer:main"
+
+[tool.setuptools]
+py-modules = ["indexer", "server", "config", "embedder", "store", "graph_store",
+              "graph_extractor", "ast_chunker", "watcher"]
