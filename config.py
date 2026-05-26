@@ -13,6 +13,12 @@ OLLAMA_MODEL = os.getenv("CASSETTO_OLLAMA_MODEL", "nomic-embed-text")
 VOYAGE_API_KEY = os.getenv("VOYAGE_API_KEY", "")
 VOYAGE_MODEL = "voyage-code-3"
 
+# optional reranking via Voyage cross-encoder
+RERANK_ENABLED = os.getenv("CASSETTO_RERANK", "false").lower() == "true"
+
+# git intelligence
+GIT_ENABLED = os.getenv("CASSETTO_GIT", "true").lower() != "false"
+
 # directories to skip during indexing
 SKIP_DIRS = {
     '.git', 'node_modules', '__pycache__', '.venv', 'venv',

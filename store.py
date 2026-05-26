@@ -3,6 +3,8 @@ Dual-store for code chunks: LanceDB (vectors) + SQLite FTS5 (keyword search).
 
 Both stores are kept in sync so we can combine them with Reciprocal Rank Fusion
 at query time — you get the best of semantic similarity AND exact keyword matching.
+
+v2: graph-aware reranking — results connected to top hits get boosted.
 """
 import sqlite3
 import time
@@ -139,12 +141,12 @@ def search_bm25(project_id: str, query: str, limit: int = 20) -> list[dict]:
 
 
 def hybrid_search(project_id: str, query: str, embedding: list[float],
-                  limit: int = 10) -> list[dict]:
+                  limit: int = 10, graph_conn=None) -> list[dict]:
     """
     Combine vector + BM25 results with Reciprocal Rank Fusion.
     Each result gets score = sum of 1/(rank + 60) across both lists.
-    This way a result that's top-5 in both lists beats one that's #1 in
-    just one list.
+
+    v2: optionally boost results that are graph-neighbors of top hits.
     """
     k = 60  # standard RRF constant
 
@@ -164,6 +166,30 @@ def hybrid_search(project_id: str, query: str, embedding: list[float],
         scores[rid] = scores.get(rid, 0) + 1.0 / (rank + k)
         if rid not in result_map:
             result_map[rid] = result
+
+    # ── graph-aware reranking ──────────────────────────────────
+    if graph_conn and scores:
+        try:
+            from graph_store import get_graph_neighbors
+            # get the top 3 results so far
+            top_ids = sorted(scores, key=lambda x: scores[x], reverse=True)[:3]
+            top_symbols = set()
+            for rid in top_ids:
+                sym = result_map[rid].get('symbol', '')
+                if sym and sym != 'module_level':
+                    top_symbols.add(sym)
+
+            # find all graph neighbors of top results
+            neighbor_ids = set()
+            for sym in top_symbols:
+                neighbor_ids |= get_graph_neighbors(graph_conn, sym)
+
+            # boost results that are graph-connected to top results
+            for rid in scores:
+                if rid in neighbor_ids:
+                    scores[rid] *= 1.3  # 30% graph proximity boost
+        except Exception:
+            pass  # graph reranking is best-effort
 
     sorted_ids = sorted(scores, key=lambda x: scores[x], reverse=True)
     return [result_map[rid] for rid in sorted_ids[:limit]]
@@ -202,6 +228,19 @@ def get_chunks_for_file(project_id: str, file_path: str) -> list[dict]:
         (file_path,)
     ).fetchall()
     return [{"id": r[0], "symbol": r[1], "ast_hash": r[2]} for r in rows]
+
+
+def get_file_metadata(project_id: str, file_path: str) -> dict | None:
+    """Get stored metadata for a file (hash, last indexed time, etc.)."""
+    conn = get_sqlite_conn(project_id)
+    row = conn.execute(
+        "SELECT path, file_hash, last_indexed, symbol_count FROM files WHERE path = ?",
+        (file_path,)
+    ).fetchone()
+    if not row:
+        return None
+    return {"path": row[0], "file_hash": row[1],
+            "last_indexed": row[2], "symbol_count": row[3]}
 
 
 def update_file_metadata(project_id: str, file_path: str,

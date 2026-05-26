@@ -25,6 +25,9 @@ dependencies = [
     "watchdog",
 ]
 
+[project.optional-dependencies]
+dev = ["pytest", "pytest-timeout"]
+
 [project.urls]
 Homepage = "https://github.com/shahanxd/cassetto"
 Repository = "https://github.com/shahanxd/cassetto"
@@ -34,4 +37,5 @@ cassetto = "indexer:main"
 
 [tool.setuptools]
 py-modules = ["indexer", "server", "config", "embedder", "store", "graph_store",
-              "graph_extractor", "ast_chunker", "watcher"]
+              "graph_extractor", "ast_chunker", "import_extractor", "git_intel",
+              "architecture", "watcher"]

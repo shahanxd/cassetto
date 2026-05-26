@@ -1,221 +1,145 @@
-<p align="center">
-  <h1 align="center">Cassetto</h1>
-  <p align="center">
-    <strong>Give your LLM structural awareness of any codebase.</strong>
-    <br/>
-    AST-based code intelligence with hybrid search, call graphs, and blast radius analysis — via MCP.
-  </p>
-</p>
+# Cassetto
 
-<p align="center">
-  <a href="#quick-start">Quick Start</a> •
-  <a href="#connect-to-your-llm">Connect to LLM</a> •
-  <a href="#tools">Tools</a> •
-  <a href="#how-it-works">How It Works</a> •
-  <a href="#evaluation">Evaluation</a>
-</p>
+**Give your LLM structural awareness of any codebase via MCP.**
+
+Cassetto is a local-first code intelligence server that connects to AI coding assistants (Antigravity, Claude, Cursor) through the [Model Context Protocol](https://modelcontextprotocol.io/). It indexes your codebase into semantic search + call graphs + import graphs, then exposes 18 tools your LLM calls automatically to answer code questions with real structural intelligence.
+
+**Eval results** (Llama 3.2, 10-question benchmark, React+Django project):
+- LLM + project files in context: 17.5% accuracy
+- LLM + Cassetto: **76.7% accuracy** (4.4x uplift, 10-0 wins)
 
 ---
 
-## What is this?
+## Setup (3 steps)
 
-Cassetto indexes your codebase into a local search + graph database, then exposes it to LLMs via [MCP](https://modelcontextprotocol.io/) (Model Context Protocol). Your LLM gets:
+### Prerequisites
+- **Python 3.11+**
+- **Ollama** running locally: https://ollama.com
+- **Git** installed
 
-- **Hybrid search** — semantic similarity + keyword matching, fused with Reciprocal Rank Fusion
-- **Call graph** — who calls what, and what calls who
-- **Blast radius** — "if I change this function, what breaks?" (recursive, up to 3 hops)
-- **Dead code detection** — functions nothing calls
-- **Repo map** — PageRank-ranked overview of the most important symbols
-- **12 language support** — Python, JS, TS, TSX, Go, Rust, Java, Ruby, PHP, C#, C++, C
+### Step 1: Install
 
-**100% local.** No API keys needed. No cloud. Runs on Ollama.
+```bash
+pip install cassetto
+```
 
----
-
-## Quick Start
-
-### 1. Prerequisites
-
-- Python 3.11+
-- [Ollama](https://ollama.ai/) running locally with an embedding model:
-
+Pull the embedding model:
 ```bash
 ollama pull nomic-embed-text
-ollama serve
 ```
 
-### 2. Install
+### Step 2: Index your project
 
 ```bash
-git clone https://github.com/shahanxd/cassetto.git
-cd cassetto
-pip install .
+cd /path/to/your/project
+cassetto index .
 ```
 
-### 3. Index your project
+This parses all source files, generates embeddings, builds call/import graphs, analyzes git history, and stores everything locally in `~/.cassetto/`.
+
+### Step 3: Connect to your AI assistant
 
 ```bash
-cassetto index /path/to/your/project --project myproject
+cassetto setup
 ```
 
-### 4. Search it
+This auto-configures MCP for every AI assistant it finds on your system (Antigravity, Claude Desktop, Cursor). Restart your assistant and you're done.
 
-```bash
-cassetto search "authentication flow" --project myproject
-```
-
-That's it. Your codebase is now searchable.
+That's it. Just talk to your AI normally — it calls Cassetto tools automatically.
 
 ---
 
-## Connect to Your LLM
+## What changes
 
-Cassetto works as an MCP server that LLMs connect to automatically. 
+Without Cassetto, your AI can only read files. With Cassetto, it can:
 
-### Claude Code
-
-Add to your Claude Code MCP settings:
-
-```json
-{
-  "mcpServers": {
-    "cassetto": {
-      "command": "python",
-      "args": ["/path/to/cassetto/server.py"],
-      "env": {
-        "CASSETTO_PROJECT_ID": "myproject"
-      }
-    }
-  }
-}
-```
-
-### Antigravity
-
-Add to `~/.gemini/antigravity/mcp_config.json`:
-
-```json
-{
-  "mcpServers": {
-    "cassetto": {
-      "command": "python",
-      "args": ["/path/to/cassetto/server.py"],
-      "env": {
-        "CASSETTO_PROJECT_ID": "myproject"
-      }
-    }
-  }
-}
-```
-
-After connecting, your LLM automatically has access to all 6 tools. Try asking it:
-> "What are the most important functions in this codebase?"
-
----
-
-## Tools
-
-| Tool | What it does | Example |
+| You ask | Without Cassetto | With Cassetto |
 |---|---|---|
-| `search_code(query)` | Hybrid BM25 + vector search. Works for exact names and fuzzy concepts. | `search_code("user authentication")` |
-| `get_call_graph_tool(symbol)` | Shows callers and callees of a function. | `get_call_graph_tool("apiFetch")` |
-| `blast_radius(symbol)` | What breaks if you change this? Recursive up to 3 hops. | `blast_radius("getAqiColor")` |
-| `find_dead_code()` | Functions nothing calls. Excludes main, __init__, tests. | `find_dead_code()` |
-| `get_repo_map(n)` | Top N symbols by PageRank importance. | `get_repo_map(20)` |
-| `get_index_status()` | How many files/chunks are indexed. | `get_index_status()` |
+| "What breaks if I refactor `auth`?" | Guesses from nearby code | **10 exact callers with file:line** |
+| "What are the riskiest files?" | Can't know | **Ranked by git churn x authors** |
+| "Show me `getColor` source code" | Searches through files | **Jumps to exact line instantly** |
+| "Find dead code" | Can't do cross-file analysis | **Lists unused functions** |
+| "What frameworks does this use?" | Infers from filenames | **Auto-detected: React + Django** |
+| "Trace the data pipeline" | Struggles with cross-file flow | **Call graph + import graph** |
 
 ---
 
-## Live File Watching
-
-Keep your index up-to-date as you code:
+## CLI Reference
 
 ```bash
-cassetto watch /path/to/your/project --project myproject
+cassetto index [dir]           # Index a project (default: current dir)
+cassetto index . --force       # Force full re-index
+cassetto setup                 # Auto-configure MCP for your AI assistant
+cassetto setup -p myproject    # Configure with specific project ID
+cassetto serve                 # Start MCP server manually
+cassetto search "auth flow"    # Quick search from terminal
+cassetto watch .               # Watch for changes, re-index live
 ```
 
-Changes are debounced (0.4s), and PageRank is recomputed every 30 seconds.
+The `--project` / `-p` flag is optional everywhere. Defaults to the folder name.
 
 ---
 
-## How It Works
+## All 18 Tools
 
-```
-source files
-    → tree-sitter AST parser (12 languages)
-    → one chunk per function/class/method
-    → embedded into 768-dim vectors (Ollama nomic-embed-text)
-    → stored in LanceDB (vectors) + SQLite FTS5 (keywords)
-    → call graph edges stored in DuckDB
-    → PageRank computed over the call graph (NetworkX)
-    → served to LLMs via FastMCP
-```
+Your AI calls these automatically. You never need to know they exist.
 
-**Three databases**, each doing what it's best at:
+### Code Search
+- **`search_code`** — Hybrid BM25 + semantic search with graph-aware reranking
+- **`get_repo_map`** — PageRank-ranked map of the most important symbols
 
-| Database | Purpose |
-|---|---|
-| **LanceDB** | Vector similarity search (semantic) |
-| **SQLite FTS5** | BM25 keyword search (exact matches) |
-| **DuckDB** | Call graph, blast radius (recursive SQL), PageRank |
+### Symbol Intelligence
+- **`find_references`** — All callers/renderers/extenders of a symbol
+- **`goto_definition`** — Jump to source with full code
+- **`find_implementations`** — Classes extending a base class
+- **`explain_symbol`** — Deep dive: definition + callers + callees + PageRank
 
-Search results from LanceDB and SQLite are combined using **Reciprocal Rank Fusion** — a result that's top-5 in both lists beats one that's #1 in just one list.
+### Graph Analysis
+- **`get_call_graph`** — What calls this function and what it calls
+- **`blast_radius`** — Everything that transitively depends on a symbol
+- **`find_dead_code`** — Unreferenced functions (candidates for deletion)
+- **`find_cycles`** — Circular dependencies in the import graph
 
-See [ARCHITECTURE.md](ARCHITECTURE.md) for the full deep dive.
+### Git Intelligence
+- **`get_hotspots`** — Riskiest files (high churn x many authors)
+- **`get_change_history`** — Git log per file/symbol
+- **`get_ownership`** — Who wrote this code
+- **`get_change_coupling`** — Files that always change together
 
----
-
-## Evaluation
-
-Tested against a real project (57 files, React + Django) with 15 natural developer questions:
-
-| | Cassetto (MCP) | Baseline (grep) |
-|---|---|---|
-| **Avg Recall** | **66.8%** | 10.2% |
-| **Win / Loss** | **14** | 1 |
-
-Cassetto found **6.5x more relevant results** than grep across search, call graph, blast radius, dead code, and architecture questions.
-
-The one grep win: searching for "color" literally matches file content. Cassetto's blast radius missed JSX `<Component>` syntax (known limitation).
-
-Full report in [`eval/`](eval/).
-
----
-
-## Supported Languages
-
-Python · JavaScript · TypeScript · TSX · JSX · Go · Rust · Java · Ruby · PHP · C# · C++ · C
+### Architecture
+- **`get_architecture_summary`** — Frameworks, layers, entry points, top symbols
+- **`find_entry_points`** — Routes, main functions, CLI commands
+- **`get_imports`** — Module dependency graph
+- **`get_index_status`** — Index health check
 
 ---
 
 ## Configuration
 
-All config is via environment variables (or edit `config.py`):
-
 | Variable | Default | Description |
 |---|---|---|
-| `CASSETTO_PROJECT_ID` | `default` | Project ID for MCP server |
-| `CASSETTO_DATA_DIR` | `~/.cassetto/` | Where index data is stored |
+| `CASSETTO_PROJECT_ID` | folder name | Which indexed project to query |
+| `CASSETTO_DATA_DIR` | `~/.cassetto` | Where indexes are stored |
 | `CASSETTO_EMBEDDING_BACKEND` | `ollama` | `ollama` or `voyage` |
-| `CASSETTO_OLLAMA_URL` | `http://localhost:11434` | Ollama API endpoint |
-| `CASSETTO_OLLAMA_MODEL` | `nomic-embed-text` | Embedding model |
-| `VOYAGE_API_KEY` | *(none)* | Optional: Voyage AI API key |
+| `CASSETTO_OLLAMA_URL` | `http://localhost:11434` | Ollama server URL |
+| `CASSETTO_GIT` | `true` | Enable git analysis |
 
----
+## Supported Languages
 
-## Data Storage
+Python, JavaScript, TypeScript, JSX, TSX, Go, Rust, Java, Ruby, PHP, C#, C, C++
 
-```
-~/.cassetto/<project-id>/
-├── vectors/           # LanceDB embeddings
-├── index.db           # SQLite FTS5 + file metadata
-└── graph.duckdb       # Call graph + PageRank
-```
+## How it works
 
-Each project is fully isolated. Delete the project directory to reset.
+1. **AST Parsing** (tree-sitter) — Extracts functions, classes, methods as structured chunks
+2. **Embeddings** (Ollama/Voyage) — Generates semantic vectors for each chunk
+3. **Call Graph** (DuckDB) — Tracks who-calls-what, component renders, class inheritance
+4. **Import Graph** — Maps module dependencies across 12 languages
+5. **Git Analysis** — Churn rates, ownership, change coupling from git history
+6. **PageRank** — Ranks symbols by structural importance
+7. **MCP Server** (FastMCP) — Exposes all intelligence as tools via stdio protocol
 
----
+Everything runs locally. No cloud, no API keys required (unless using Voyage embeddings).
 
 ## License
 
-MIT — see [LICENSE](LICENSE).
+MIT

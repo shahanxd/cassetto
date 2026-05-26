@@ -2,617 +2,673 @@
 <html lang="en">
 <head>
 <meta charset="UTF-8">
-<title>Codebase Intelligence — A/B Evaluation Report</title>
-<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Cassetto — LLM Code Intelligence Evaluation Report</title>
 <style>
-*{margin:0;padding:0;box-sizing:border-box}
-body{font-family:'Inter',system-ui,sans-serif;background:#030712;color:#e5e7eb;padding:40px 24px;line-height:1.6}
-.wrap{max-width:920px;margin:0 auto}
-h1{font-size:32px;font-weight:800;background:linear-gradient(135deg,#06b6d4,#8b5cf6);
--webkit-background-clip:text;-webkit-text-fill-color:transparent;margin-bottom:4px}
-.sub{color:#6b7280;font-size:14px;margin-bottom:32px}
-h2{font-size:18px;color:#06b6d4;margin:36px 0 14px;padding-bottom:6px;border-bottom:1px solid #1f2937}
-.hero{display:grid;grid-template-columns:1fr 1fr 1fr 1fr;gap:14px;margin-bottom:24px}
-.hero-card{background:#111827;border-radius:14px;padding:20px;text-align:center;border:1px solid #1f2937}
-.hero-card .big{font-size:36px;font-weight:800}
-.hero-card .lbl{color:#6b7280;font-size:11px;margin-top:2px;text-transform:uppercase;letter-spacing:0.5px}
-.cyan{color:#06b6d4} .orange{color:#f97316} .green{color:#10b981} .gray{color:#6b7280}
-.purple{color:#8b5cf6}
-.card{background:#111827;border-radius:12px;padding:18px 20px;margin-bottom:14px;border:1px solid #1f2937}
-.card-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px}
-.card-head .q{font-size:14px;font-weight:600;flex:1}
-.tag{padding:3px 10px;border-radius:16px;font-size:11px;font-weight:600;white-space:nowrap}
-.tag-win{background:rgba(6,182,212,0.15);color:#06b6d4}
-.tag-loss{background:rgba(249,115,22,0.15);color:#f97316}
-.tag-tie{background:rgba(107,114,128,0.15);color:#6b7280}
-.tid{background:#1f2937;color:#06b6d4;padding:3px 8px;border-radius:6px;font-size:12px;
-font-weight:600;margin-right:10px;white-space:nowrap}
-.cols{display:grid;grid-template-columns:1fr 1fr;gap:10px}
-.col{background:#0a0f1a;border-radius:8px;padding:12px;font-size:13px}
-.col.enh{border-left:3px solid #06b6d4}
-.col.bas{border-left:3px solid #f97316}
-.col .title{font-weight:600;font-size:11px;text-transform:uppercase;letter-spacing:0.5px;margin-bottom:6px}
-.col.enh .title{color:#06b6d4}
-.col.bas .title{color:#f97316}
-.row{display:flex;justify-content:space-between;padding:2px 0;font-size:12px}
-.row .v{font-weight:600}
-.pills{display:flex;flex-wrap:wrap;gap:3px;margin-top:6px}
-.pill{background:#1f2937;color:#9ca3af;padding:1px 7px;border-radius:3px;font-size:10px}
-.pill.hit{background:rgba(6,182,212,0.2);color:#06b6d4}
-.gt{color:#6b7280;font-size:11px;margin-top:8px}
-.gt b{color:#9ca3af}
-.foot{text-align:center;color:#374151;font-size:11px;margin-top:48px;padding-top:14px;
-border-top:1px solid #1f2937}
+  :root {
+    --bg: #0d1117; --surface: #161b22; --border: #30363d;
+    --text: #e6edf3; --text-muted: #8b949e; --accent: #58a6ff;
+    --green: #3fb950; --red: #f85149; --yellow: #d29922;
+    --cassetto: #238636; --vanilla: #6e7681;
+  }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body {
+    font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    background: var(--bg); color: var(--text); line-height: 1.6;
+    padding: 0; min-height: 100vh;
+  }
+  .hero {
+    background: linear-gradient(135deg, #0d1117 0%, #161b22 50%, #1a2332 100%);
+    border-bottom: 1px solid var(--border);
+    padding: 60px 40px 50px;
+    text-align: center;
+  }
+  .hero h1 {
+    font-size: 2.8rem; font-weight: 800;
+    background: linear-gradient(135deg, #58a6ff, #3fb950);
+    -webkit-background-clip: text; -webkit-text-fill-color: transparent;
+    margin-bottom: 8px;
+  }
+  .hero .subtitle { color: var(--text-muted); font-size: 1.1rem; }
+  .hero .methodology {
+    margin-top: 20px; padding: 16px 24px; background: rgba(88,166,255,0.08);
+    border: 1px solid rgba(88,166,255,0.2); border-radius: 8px;
+    display: inline-block; text-align: left; max-width: 700px;
+    font-size: 0.9rem; color: var(--text-muted);
+  }
+  .hero .methodology strong { color: var(--text); }
+
+  .container { max-width: 1200px; margin: 0 auto; padding: 40px 24px; }
+
+  /* ── Summary Cards ── */
+  .summary-grid {
+    display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px;
+    margin-bottom: 40px;
+  }
+  .stat-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 24px; text-align: center;
+  }
+  .stat-card .number {
+    font-size: 2.8rem; font-weight: 800; line-height: 1;
+  }
+  .stat-card .label {
+    font-size: 0.85rem; color: var(--text-muted); margin-top: 4px;
+    text-transform: uppercase; letter-spacing: 0.05em;
+  }
+  .stat-card.green .number { color: var(--green); }
+  .stat-card.red .number { color: var(--red); }
+  .stat-card.blue .number { color: var(--accent); }
+
+  /* ── Bar Comparison ── */
+  .comparison-section {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; padding: 32px; margin-bottom: 40px;
+  }
+  .comparison-section h2 { font-size: 1.4rem; margin-bottom: 24px; }
+  .bar-row {
+    display: flex; align-items: center; margin-bottom: 16px; gap: 12px;
+  }
+  .bar-label { width: 100px; font-size: 0.85rem; color: var(--text-muted); text-align: right; }
+  .bar-track {
+    flex: 1; height: 32px; background: rgba(255,255,255,0.05);
+    border-radius: 6px; overflow: hidden; position: relative;
+  }
+  .bar-fill {
+    height: 100%; border-radius: 6px; display: flex;
+    align-items: center; padding: 0 12px;
+    font-size: 0.85rem; font-weight: 600; min-width: 40px;
+    transition: width 1s ease;
+  }
+  .bar-fill.cassetto { background: var(--green); }
+  .bar-fill.vanilla { background: var(--vanilla); }
+
+  /* ── Test Cards ── */
+  .tests-section h2 { font-size: 1.4rem; margin-bottom: 20px; }
+  .test-card {
+    background: var(--surface); border: 1px solid var(--border);
+    border-radius: 12px; margin-bottom: 16px; overflow: hidden;
+  }
+  .test-header {
+    display: flex; align-items: center; gap: 12px;
+    padding: 16px 20px; border-bottom: 1px solid var(--border);
+    flex-wrap: wrap;
+  }
+  .test-id {
+    background: var(--accent); color: #000; font-weight: 700;
+    padding: 2px 10px; border-radius: 4px; font-size: 0.85rem;
+  }
+  .test-question { flex: 1; font-size: 0.95rem; min-width: 200px; }
+  .badge {
+    padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 600;
+  }
+  .badge.win { background: rgba(63,185,80,0.15); color: var(--green); }
+  .badge.loss { background: rgba(248,81,73,0.15); color: var(--red); }
+  .badge.tie { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+
+  .scores-row { display: grid; grid-template-columns: 1fr 1fr; }
+  .score-box { padding: 16px 20px; }
+  .score-box.vanilla-box { border-right: 1px solid var(--border); }
+  .score-label {
+    font-size: 0.8rem; font-weight: 600; text-transform: uppercase;
+    letter-spacing: 0.05em; margin-bottom: 8px;
+  }
+  .vanilla-box .score-label { color: var(--vanilla); }
+  .cassetto-box .score-label { color: var(--green); }
+  .score-metrics {
+    display: flex; gap: 20px; margin-bottom: 12px; font-size: 0.9rem;
+  }
+  .score-metrics strong { color: var(--text); }
+  .answer-preview {
+    font-size: 0.8rem; color: var(--text-muted);
+    background: rgba(0,0,0,0.3); padding: 12px; border-radius: 6px;
+    max-height: 200px; overflow-y: auto; white-space: pre-wrap;
+    word-wrap: break-word; line-height: 1.5;
+  }
+
+  /* ── Footer ── */
+  .footer {
+    text-align: center; padding: 40px; color: var(--text-muted);
+    font-size: 0.85rem; border-top: 1px solid var(--border);
+  }
+
+  @media (max-width: 768px) {
+    .summary-grid { grid-template-columns: repeat(2, 1fr); }
+    .scores-row { grid-template-columns: 1fr; }
+    .score-box.vanilla-box { border-right: none; border-bottom: 1px solid var(--border); }
+    .hero h1 { font-size: 2rem; }
+  }
 </style>
 </head>
 <body>
-<div class="wrap">
-<h1>Codebase Intelligence — A/B Evaluation</h1>
-<p class="sub">Sparrow project · 57 files · 129 symbols · 15 real developer questions · Enhanced (MCP tools) vs Baseline (grep)</p>
 
 <div class="hero">
-  <div class="hero-card">
-    <div class="big cyan">66.8%</div>
-    <div class="lbl">Enhanced Avg Recall</div>
-  </div>
-  <div class="hero-card">
-    <div class="big orange">10.2%</div>
-    <div class="lbl">Baseline Avg Recall</div>
-  </div>
-  <div class="hero-card">
-    <div class="big green">+56.6%</div>
-    <div class="lbl">Improvement</div>
-  </div>
-  <div class="hero-card">
-    <div class="big purple">14-1-0</div>
-    <div class="lbl">Win-Loss-Tie</div>
+  <h1>Cassetto Evaluation Report</h1>
+  <p class="subtitle">Real-World LLM Code Intelligence — Side-by-Side Comparison</p>
+  <div class="methodology">
+    <strong>Methodology:</strong> 10 natural developer questions were sent to the same LLM (Llama 3.2 3B) under two conditions:<br>
+    <strong>Vanilla:</strong> LLM receives all project source files in its context window (~20K tokens) — simulating a standard IDE AI assistant.<br>
+    <strong>Cassetto:</strong> LLM receives structured Cassetto tool outputs (call graphs, blast radius, imports, git churn, architecture analysis).<br>
+    Both answers were scored against manually verified ground truth.<br>
+    <strong>Accuracy</strong> = did the answer contain the required facts?&emsp;
+    <strong>Specificity</strong> = did it name exact functions, files, and line numbers?
   </div>
 </div>
 
-<h2>Recall by Test Case</h2>
-<svg width="880" height="340" xmlns="http://www.w3.org/2000/svg" style="font-family:Inter,system-ui,sans-serif;background:#111827;border-radius:12px;margin:12px 0;">
-<text x="440" y="28" text-anchor="middle" fill="#e5e7eb" font-size="13" font-weight="600">Recall — how much of the answer did each approach find?</text>
-<line x1="55" y1="285.0" x2="860" y2="285.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="289.0" text-anchor="end" fill="#6b7280" font-size="10">0</text>
-<line x1="55" y1="225.0" x2="860" y2="225.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="229.0" text-anchor="end" fill="#6b7280" font-size="10">25</text>
-<line x1="55" y1="165.0" x2="860" y2="165.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="169.0" text-anchor="end" fill="#6b7280" font-size="10">50</text>
-<line x1="55" y1="105.0" x2="860" y2="105.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="109.0" text-anchor="end" fill="#6b7280" font-size="10">75</text>
-<line x1="55" y1="45.0" x2="860" y2="45.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="49.0" text-anchor="end" fill="#6b7280" font-size="10">100</text>
-<rect x="70" y="205.08" width="16" height="79.91999999999999" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="78" y="201.08" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">33</text>
-<rect x="92" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="86" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q1</text>
-<rect x="124" y="141.0" width="16" height="144.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="132" y="137.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">60</text>
-<rect x="146" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="140" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q2</text>
-<rect x="178" y="45.0" width="16" height="240.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="186" y="41.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">100</text>
-<rect x="200" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="194" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q3</text>
-<rect x="232" y="45.0" width="16" height="240.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="240" y="41.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">100</text>
-<rect x="254" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="248" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q4</text>
-<rect x="286" y="225.0" width="16" height="60.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="294" y="221.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">25</text>
-<rect x="308" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="302" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q5</text>
-<rect x="340" y="93.0" width="16" height="192.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="348" y="89.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">80</text>
-<rect x="362" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="356" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q6</text>
-<rect x="394" y="165.0" width="16" height="120.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="402" y="161.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">50</text>
-<rect x="416" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="410" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q7</text>
-<rect x="448" y="45.0" width="16" height="240.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="456" y="41.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">100</text>
-<rect x="470" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="464" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q8</text>
-<rect x="502" y="45.0" width="16" height="240.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="510" y="41.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">100</text>
-<rect x="524" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="518" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q9</text>
-<rect x="556" y="141.0" width="16" height="144.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="564" y="137.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">60</text>
-<rect x="578" y="93.0" width="16" height="192.0" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="586" y="89.0" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">80</text>
-<text x="572" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q10</text>
-<rect x="610" y="45.0" width="16" height="240.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="618" y="41.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">100</text>
-<rect x="632" y="205.08" width="16" height="79.91999999999999" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="640" y="201.08" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">33</text>
-<text x="626" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q11</text>
-<rect x="664" y="216.35999999999999" width="16" height="68.64000000000001" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="672" y="212.35999999999999" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">29</text>
-<rect x="686" y="250.68" width="16" height="34.32000000000001" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="694" y="246.68" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">14</text>
-<text x="680" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q12</text>
-<rect x="718" y="165.0" width="16" height="120.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="726" y="161.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">50</text>
-<rect x="740" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="734" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q13</text>
-<rect x="772" y="189.0" width="16" height="96.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="780" y="185.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">40</text>
-<rect x="794" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="788" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q14</text>
-<rect x="826" y="105.0" width="16" height="180.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="834" y="101.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">75</text>
-<rect x="848" y="225.0" width="16" height="60.0" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="856" y="221.0" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">25</text>
-<text x="842" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q15</text>
-<rect x="640" y="16" width="10" height="10" rx="2" fill="#06b6d4"/>
-<text x="654" y="25" fill="#d1d5db" font-size="10">Enhanced (MCP)</text>
-<rect x="760" y="16" width="10" height="10" rx="2" fill="#f97316"/>
-<text x="774" y="25" fill="#d1d5db" font-size="10">Baseline (grep)</text>
-</svg>
+<div class="container">
 
-<h2>Precision by Test Case</h2>
-<svg width="880" height="340" xmlns="http://www.w3.org/2000/svg" style="font-family:Inter,system-ui,sans-serif;background:#111827;border-radius:12px;margin:12px 0;">
-<text x="440" y="28" text-anchor="middle" fill="#e5e7eb" font-size="13" font-weight="600">Precision — of the results returned, how many were relevant?</text>
-<line x1="55" y1="285.0" x2="860" y2="285.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="289.0" text-anchor="end" fill="#6b7280" font-size="10">0</text>
-<line x1="55" y1="225.0" x2="860" y2="225.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="229.0" text-anchor="end" fill="#6b7280" font-size="10">25</text>
-<line x1="55" y1="165.0" x2="860" y2="165.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="169.0" text-anchor="end" fill="#6b7280" font-size="10">50</text>
-<line x1="55" y1="105.0" x2="860" y2="105.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="109.0" text-anchor="end" fill="#6b7280" font-size="10">75</text>
-<line x1="55" y1="45.0" x2="860" y2="45.0" stroke="#1f2937" stroke-width="1"/>
-<text x="49" y="49.0" text-anchor="end" fill="#6b7280" font-size="10">100</text>
-<rect x="70" y="237.0" width="16" height="48.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="78" y="233.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">20</text>
-<rect x="92" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="86" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q1</text>
-<rect x="124" y="213.0" width="16" height="72.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="132" y="209.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">30</text>
-<rect x="146" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="140" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q2</text>
-<rect x="178" y="210.12" width="16" height="74.88" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="186" y="206.12" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">31</text>
-<rect x="200" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="194" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q3</text>
-<rect x="232" y="182.04000000000002" width="16" height="102.96" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="240" y="178.04000000000002" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">43</text>
-<rect x="254" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="248" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q4</text>
-<rect x="286" y="225.0" width="16" height="60.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="294" y="221.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">25</text>
-<rect x="308" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="302" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q5</text>
-<rect x="340" y="124.91999999999999" width="16" height="160.08" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="348" y="120.91999999999999" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">67</text>
-<rect x="362" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="356" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q6</text>
-<rect x="394" y="45.0" width="16" height="240.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="402" y="41.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">100</text>
-<rect x="416" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="410" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q7</text>
-<rect x="448" y="225.0" width="16" height="60.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="456" y="221.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">25</text>
-<rect x="470" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="464" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q8</text>
-<rect x="502" y="213.0" width="16" height="72.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="510" y="209.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">30</text>
-<rect x="524" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="518" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q9</text>
-<rect x="556" y="244.92000000000002" width="16" height="40.08" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="564" y="240.92000000000002" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">17</text>
-<rect x="578" y="205.08" width="16" height="79.91999999999999" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="586" y="201.08" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">33</text>
-<text x="572" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q10</text>
-<rect x="610" y="249.0" width="16" height="36.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="618" y="245.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">15</text>
-<rect x="632" y="165.0" width="16" height="120.0" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="640" y="161.0" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">50</text>
-<text x="626" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q11</text>
-<rect x="664" y="253.07999999999998" width="16" height="31.92" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="672" y="249.07999999999998" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">13</text>
-<rect x="686" y="225.0" width="16" height="60.0" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="694" y="221.0" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">25</text>
-<text x="680" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q12</text>
-<rect x="718" y="255.0" width="16" height="30.0" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="726" y="251.0" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">12</text>
-<rect x="740" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="734" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q13</text>
-<rect x="772" y="231.72" width="16" height="53.28" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="780" y="227.72" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">22</text>
-<rect x="794" y="285.0" width="16" height="1" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="788" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q14</text>
-<rect x="826" y="247.07999999999998" width="16" height="37.92" rx="3" fill="#06b6d4" opacity="0.9"/>
-<text x="834" y="243.07999999999998" text-anchor="middle" fill="#06b6d4" font-size="9" font-weight="700">16</text>
-<rect x="848" y="281.64" width="16" height="3.3599999999999994" rx="3" fill="#f97316" opacity="0.85"/>
-<text x="856" y="277.64" text-anchor="middle" fill="#f97316" font-size="9" font-weight="700">1</text>
-<text x="842" y="299" text-anchor="middle" fill="#9ca3af" font-size="10" font-weight="500">Q15</text>
-<rect x="640" y="16" width="10" height="10" rx="2" fill="#06b6d4"/>
-<text x="654" y="25" fill="#d1d5db" font-size="10">Enhanced (MCP)</text>
-<rect x="760" y="16" width="10" height="10" rx="2" fill="#f97316"/>
-<text x="774" y="25" fill="#d1d5db" font-size="10">Baseline (grep)</text>
-</svg>
+  <!-- Summary Stats -->
+  <div class="summary-grid">
+    <div class="stat-card green">
+      <div class="number">10–0</div>
+      <div class="label">Cassetto Wins</div>
+    </div>
+    <div class="stat-card blue">
+      <div class="number">77%</div>
+      <div class="label">Cassetto Accuracy</div>
+    </div>
+    <div class="stat-card red">
+      <div class="number">18%</div>
+      <div class="label">Vanilla Accuracy</div>
+    </div>
+    <div class="stat-card green">
+      <div class="number">4.4×</div>
+      <div class="label">Accuracy Uplift</div>
+    </div>
+  </div>
 
-<h2>Detailed Results</h2>
+  <!-- Bar Comparison -->
+  <div class="comparison-section">
+    <h2>Head-to-Head Comparison</h2>
 
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q1</span>Where does the app calculate AQI values?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">33.3%</span></div>
-      <div class="row"><span>Precision</span><span class="v">20.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">2 / 10</span></div>
-      <div class="row"><span>Time</span><span class="v">7350ms</span></div>
-      <div class="pills"><span class="pill">_generate_summary</span><span class="pill">_get_severity_tier</span><span class="pill">_get_urgency_score</span><span class="pill">fetch_openmeteo</span><span class="pill">getExplainability</span><span class="pill hit">get_aqi_tier</span><span class="pill hit">get_explainability</span><span class="pill">get_impact_metrics</span><span class="pill">get_wind_data</span><span class="pill">predict_sources</span></div>
+    <div class="bar-row">
+      <div class="bar-label">Accuracy</div>
+      <div class="bar-track">
+        <div class="bar-fill cassetto" style="width: 76.67%">77%</div>
+      </div>
     </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 0</span></div>
-      <div class="row"><span>Time</span><span class="v">1594ms</span></div>
-      <div class="pills"></div>
+    <div class="bar-row">
+      <div class="bar-label"></div>
+      <div class="bar-track">
+        <div class="bar-fill vanilla" style="width: 17.5%">18%</div>
+      </div>
+    </div>
+
+    <div style="height: 16px"></div>
+
+    <div class="bar-row">
+      <div class="bar-label">Specificity</div>
+      <div class="bar-track">
+        <div class="bar-fill cassetto" style="width: 76.5%">76%</div>
+      </div>
+    </div>
+    <div class="bar-row">
+      <div class="bar-label"></div>
+      <div class="bar-track">
+        <div class="bar-fill vanilla" style="width: 19.12%">19%</div>
+      </div>
+    </div>
+
+    <div style="margin-top: 12px; display: flex; gap: 20px; font-size: 0.85rem; color: var(--text-muted);">
+      <span><span style="color: var(--green);">■</span> LLM + Cassetto</span>
+      <span><span style="color: var(--vanilla);">■</span> Vanilla LLM</span>
     </div>
   </div>
-  <div class="gt"><b>Ground truth:</b> _pm25_to_aqi, getAqiCategory, getAqiColor, getAqiTier, get_aqi_tier, get_explainability</div>
+
+  <!-- Per-test results -->
+  <div class="tests-section">
+    <h2>Detailed Results — All 10 Questions</h2>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q1</span>
+        <span class="test-question">Give me a high-level overview of this project: what frameworks it uses, the directory structure, and where the main entry points are.</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>75%</strong></span>
+            <span>Specificity: <strong>67%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided code snippets, I&#x27;ll give you a high-level overview of this project:
+
+**Frameworks:**
+
+1. React (for building user interfaces)
+2. Redux (for state management)
+3. React Router (for client-side routing)
+4. Webpack (for bundling and managing dependencies)
+
+**Directory Structure:**
+The directory structure appears to be organized into the following main folders:
+
+* `components`: contains reusable UI components
+* `containers`: contains higher-order components that wrap around other components
+* `actions`: contains action creators for Redux state management
+* `reducers`: contains</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>100%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output, here&#x27;s a high-level overview of the project:
+
+**Frameworks:**
+
+The project appears to use two primary frameworks:
+
+1. **React**: The `react_root` entry point is defined in `src/main.jsx` at line 7, indicating that React is used as the main framework for the frontend.
+2. **Django**: The `django_urls` entry points are defined in `backend/config/urls.py` and `backend/wards/urls.py`, suggesting that Django is used as the backend framework.
+
+**Directory Structure:**
+
+Although not explicitly stated, we can infer some aspects of the directory struct</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q2</span>
+        <span class="test-question">Where is AQI (Air Quality Index) calculated? Show me the specific functions and files that compute AQI values.</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>0%</strong></span>
+          </div>
+          <div class="answer-preview">The Air Quality Index (AQI) calculation is typically performed using a combination of air quality monitoring data from various sources, such as:
+
+1. Particulate Matter (PM) sensors: These measure the concentration of particulate matter in the air, including PM2.5 and PM10.
+2. Nitrogen Dioxide (NO2) sensors: These measure the concentration of nitrogen dioxide in the air.
+3. Ozone (O3) sensors: These measure the concentration of ozone in the air.
+
+The AQI calculation involves several steps:
+
+1. Data collection: The monitoring data from various sources is collected and stored in a database or dat</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>67%</strong></span>
+          </div>
+          <div class="answer-preview">The Air Quality Index (AQI) is calculated in several places throughout the codebase. Here are the specific functions and files where AQI values are computed:
+
+1. `getAqiTier` function:
+	* File: `C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\utils\\aqiUtils.js`
+	* Line numbers: 19-21
+	* This function takes an AQI value as input and returns a tier classification (e.g., &quot;good&quot;, &quot;moderate&quot;, &quot;poor&quot;).
+2. `getAqiColor` function:
+	* File: `C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\utils\\aqiUtils.js`
+	* Line numbers: 23-25
+	* This function takes an AQI value</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q3</span>
+        <span class="test-question">If I refactor the apiFetch function, what other functions and files will break? Give me the complete blast radius.</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>0%</strong></span>
+          </div>
+          <div class="answer-preview">Refactoring the `apiFetch` function can have a ripple effect on various parts of the codebase. Here&#x27;s a comprehensive list of functions and files that might break:
+
+**Files:**
+
+1. `api.js`: The original `apiFetch` function is likely defined in this file.
+2. `data fetching utilities**: Any functions that rely on the `apiFetch` function, such as `fetchData`, `getHotspots`, etc., will need to be updated.
+
+**Functions:**
+
+1. `fetchData()`: This function might use the `apiFetch` function to fetch data from the API.
+2. `getHotspots()`: Similar to `fetchData`, this function might rely on the `apiFetc</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>100%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output from `blast_radius(&#x27;apiFetch&#x27;)`, if you refactor the `apiFetch` function, the following functions and files will be affected:
+
+1. **Direct calls to `apiFetch`**:
+	* `fetchWards` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\api\wardApi.js:20)
+	* `fetchWardDetail` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\api\wardApi.js:26)
+	* `fetchHotspots` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\api\wardApi.js:31)
+	* `fetchCityTrend` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\api\wardApi.js</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q4</span>
+        <span class="test-question">Explain the _build_ward_data function: what does it do, what calls it, and what internal functions does it call?</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>12%</strong></span>
+          </div>
+          <div class="answer-preview">The `_build_ward_data` function is a utility function in the `src/components/HotspotCards.jsx` file. It appears to be responsible for building data related to hotspots.
+
+Here&#x27;s a breakdown of what the function does:
+
+1. **Initialization**: The function initializes an empty object called `data`.
+2. **Looping through hotspots**: The function loops through each hotspot in the `hotspots` array using the `forEach` method.
+3. **Extracting relevant data**: For each hotspot, it extracts several pieces of data:
+	* `ward_name`: The name of the ward associated with the hotspot.
+	* `aqi`: The air quality </div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>67%</strong></span>
+            <span>Specificity: <strong>38%</strong></span>
+          </div>
+          <div class="answer-preview">The `_build_ward_data` function is defined in the `services.py` file of the Sparrow codebase. It takes two parameters: `ward` and `reading`, where `reading` is optional.
+
+Here&#x27;s a breakdown of what the function does:
+
+1. **Initialization**: The function initializes a random number generator (`rng`) using the `SeededRandom` class, seeded with a value derived from the ward number.
+2. **Reading-specific variation**: If a `reading` object is provided, the function calculates various pollutant values (PM25, PM10, NO2, SO2, CO, and O3) by applying a jittering factor to each pollutant&#x27;s value in the </div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q5</span>
+        <span class="test-question">Which files in this project have the highest churn rate and are riskiest for bugs? Which ones change the most?</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>0%</strong></span>
+          </div>
+          <div class="answer-preview">To answer this question, I&#x27;ll provide an analysis based on the provided codebase. Please note that this is a hypothetical analysis, as I don&#x27;t have real-world data to work with.
+
+**Churn Rate Analysis**
+
+I&#x27;ll use a simple heuristic to estimate the churn rate of each file. The idea is to count the number of lines changed between two consecutive commits and calculate the percentage change.
+
+Here&#x27;s a rough estimate of the churn rates for each file:
+
+1. `components/Header.jsx`: 12% (high)
+2. `components/HotspotCards.jsx`: 10% (medium-high)
+3. `components/HotspotCards.js`: 8% (medium)
+4. `component</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>75%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output, the top 5 files with the highest churn rate are:
+
+1. `src/components/DetailPanel.jsx` (8 changes)
+2. `src/App.jsx` (3 changes)
+3. `backend/wards/services.py` (2 changes)
+
+These three files have the most significant impact on the project&#x27;s codebase, indicating that they are likely to be riskier for bugs and require more attention during development.
+
+The `DetailPanel.jsx` file has the highest churn rate, with 8 changes, suggesting that it is a critical component of the application that undergoes frequent updates or modifications. The `App.jsx`</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q6</span>
+        <span class="test-question">Show me the exact source code of the getAqiColor function. Where is it defined and what does it do?</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>67%</strong></span>
+            <span>Specificity: <strong>67%</strong></span>
+          </div>
+          <div class="answer-preview">I can&#x27;t provide you with the entire codebase, but I can give you an example of how the `getAqiColor` function might be implemented.
+
+```javascript
+function getAqiColor(aqi) {
+  if (aqi &lt; 50) return &#x27;green-500&#x27;; // Good air quality
+  if (aqi &lt; 100) return &#x27;yellow-200&#x27;; // Fair air quality
+  if (aqi &lt; 150) return &#x27;orange-300&#x27;; // Poor air quality
+  if (aqi &lt; 200) return &#x27;red-400&#x27;; // Severe air quality
+  return &#x27;red-500&#x27;; // Very poor air quality
+}
+```
+
+This function takes an `aqi` value as input and returns a color string that corresponds to the air quality category. The exact implementation ma</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>100%</strong></span>
+          </div>
+          <div class="answer-preview">The `getAqiColor` function is defined in the file `aqiUtils.js` at lines 23-25.
+
+Here is the exact source code:
+
+```javascript
+export function getAqiColor(aqi) {
+  return getAqiTier(aqi).color;
+}
+```
+
+This function takes an `aqi` value as input and returns the color associated with that AQI (Air Quality Index) tier. The actual color is determined by calling another function, `getAqiTier`, which is not shown in this snippet, but it&#x27;s likely defined elsewhere in the codebase.</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q7</span>
+        <span class="test-question">What does services.py import? List all its dependencies, both standard library and project-internal.</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>33%</strong></span>
+            <span>Specificity: <strong>17%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided code snippets, I&#x27;ll make an educated guess about what `services.py` might import.
+
+Since there are many files involved in this project, it&#x27;s likely that `services.py` imports various modules from other files within the project. Here are some potential dependencies that `services.py` might import:
+
+1. **Standard library**:
+	* `logging`: for logging purposes
+	* `datetime`: for date and time-related functions
+2. **Project-internal**:
+	* `models`: likely imports data models or database schema definitions (e.g., ` Ward`, `Hotspot`, etc.)
+	* `utils`: might import utility functi</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>100%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output from `get_imports(&#x27;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&#x27;)`, here are the imports of `services.py`:
+
+**External Dependencies:**
+
+1. `json`
+2. `math`
+3. `functools` (specifically, `lru_cache`)
+4. `pathlib` (specifically, `Path`)
+5. `datetime` (specifically, `timedelta`)
+6. `urllib.request`
+
+**Project-Internal Dependencies:**
+
+1. `django.utils.timezone` from `wards.models` (`C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\models.py`)
+2. `Ward`, `AQIReading`, and `Report` fro</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q8</span>
+        <span class="test-question">Are there any unused functions in this codebase that could be safely deleted? Find dead code.</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>0%</strong></span>
+          </div>
+          <div class="answer-preview">After analyzing the provided codebase, I have identified several potential areas of dead code or unused functions:
+
+1.  **Unused `getAqiColor` function**: The `getAqiColor` function is used only once in the `Header` component to calculate the color for the average AQI value. It could be extracted into a separate utility file and reused elsewhere if needed.
+2.  **Unused `TabSwitcher` component**: Although not entirely unused, the `TabSwitcher` component seems to be a custom implementation of a tab switcher. If it&#x27;s not being used anywhere in the codebase, it might be safe to remove or refactor </div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>100%</strong></span>
+            <span>Specificity: <strong>100%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output, it appears that there are 15 potential dead code functions identified by the `find_dead_code()` tool.
+
+Here is a list of the identified dead code functions:
+
+1. `_has_real_data` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\services.py:228)
+2. `generateWardAqiData` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:11)
+3. `buildDistrictMap` (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:219)
+4. `fetchRecentReports` (C:\Users\shaha\Documents\codebase-intelligence\s</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q9</span>
+        <span class="test-question">What are the most important and central functions in this codebase? Rank them by how many other functions depend on them.</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>29%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided code, I&#x27;ve identified some of the most important and central functions that seem to be widely used across multiple components. Here&#x27;s a ranking based on the number of dependencies:
+
+1. **`useAppState` and `useAppDispatch`**: These two custom hooks are likely part of the application&#x27;s state management system. They provide access to the application&#x27;s state and dispatch function, respectively. Many components depend on these hooks to retrieve data and update the state.
+
+Dependency count: High ( multiple components use these hooks)
+
+2. **`getAqiColor` and `getAqiCategory`**: </div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>43%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output, here is a ranking of the top functions by their importance (PageRank) and the number of functions that depend on them:
+
+1. **_get_latest_reading** (function_definition) in C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\services.py
+	* Importance: 0.0285
+	* Number of dependent functions: 4 (submit_report, get_wind_data, get_impact_metrics, and get_reports_for_map)
+2. **_build_ward_data** (function_definition) in C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\services.py
+	* Importance: 0.0198
+	* Number</div>
+        </div>
+      </div>
+    </div>
+    
+    <div class="test-card">
+      <div class="test-header">
+        <span class="test-id">Q10</span>
+        <span class="test-question">Trace the full data pipeline: how does ward data flow from the Django backend API all the way to the React frontend map component?</span>
+        <span class="badge win">🟢 Cassetto</span>
+      </div>
+      <div class="scores-row">
+        <div class="score-box vanilla-box">
+          <div class="score-label">LLM + Project Files</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>0%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided code snippets, I&#x27;ll outline the data pipeline for ward data from the Django backend API to the React frontend map component:
+
+**Step 1: Ward Data Retrieval from Django Backend API**
+
+* The Django backend API is responsible for retrieving ward data from a database.
+* The API endpoint returns JSON data containing ward information, such as ward name, AQI value, and other relevant details.
+
+Example API response:
+```json
+{
+    &quot;ward_name&quot;: &quot;Ward 1&quot;,
+    &quot;aqi&quot;: 200,
+    &quot;district&quot;: &quot;North Delhi&quot;
+}
+```
+**Step 2: Data Processing and Transformation**
+
+* The retrieved data is proce</div>
+        </div>
+        <div class="score-box cassetto-box">
+          <div class="score-label">LLM + Cassetto</div>
+          <div class="score-metrics">
+            <span>Accuracy: <strong>0%</strong></span>
+            <span>Specificity: <strong>43%</strong></span>
+          </div>
+          <div class="answer-preview">Based on the provided codebase intelligence output, I can trace the full data pipeline for ward data from the Django backend API to the React frontend map component. Here&#x27;s a step-by-step breakdown:
+
+1. **Ward Data Fetching**: The `fetch_all_wards` function in `data_fetcher.py` is called by the `App` class in `App.jsx`. This function fetches AQI data for all wards using a tiered strategy:
+	* Sample ~20 representative points across Delhi using OpenMeteo (fast, no rate limit)
+	* Try AQICN for top-10 worst wards (better station data)
+	* Interpolate remaining wards from nearest sampled points
+2. *</div>
+        </div>
+      </div>
+    </div>
+    
+  </div>
+
 </div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q2</span>How does user authentication work in this app?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">60.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">30.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">3 / 10</span></div>
-      <div class="row"><span>Time</span><span class="v">2098ms</span></div>
-      <div class="pills"><span class="pill">CSRFTokenView</span><span class="pill">Command</span><span class="pill">LoginPage</span><span class="pill">LoginView</span><span class="pill">LogoutView</span><span class="pill">MeView</span><span class="pill hit">getCSRFToken</span><span class="pill">getMe</span><span class="pill hit">login</span><span class="pill hit">logout</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 12</span></div>
-      <div class="row"><span>Time</span><span class="v">2523ms</span></div>
-      <div class="pills"><span class="pill">App.jsx</span><span class="pill">AppContext.jsx</span><span class="pill">LoginPage.jsx</span><span class="pill">authApi.js</span><span class="pill">auth_views.py</span><span class="pill">dep-BK3b2jBa.js</span><span class="pill">index.d.ts</span><span class="pill">node-entry.js</span><span class="pill">parseAst.js</span><span class="pill">rollup.js</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> getCSRFToken, login, login_view, logout, logout_view</div>
+
+<div class="footer">
+  Cassetto — Local-first code intelligence for LLMs<br>
+  Evaluation run with Llama 3.2 3B on Sparrow codebase (52 files, React + Django)
 </div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q3</span>How does the app attribute pollution sources to each ward?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">100.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">31.2%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">5 / 16</span></div>
-      <div class="row"><span>Time</span><span class="v">4220ms</span></div>
-      <div class="pills"><span class="pill">AQIReading</span><span class="pill">CitySourceMapView</span><span class="pill hit">_build_ward_data</span><span class="pill hit">_fallback_sources</span><span class="pill">_generate_summary</span><span class="pill">getExplainability</span><span class="pill">get_dominant_source</span><span class="pill hit">get_explainability</span><span class="pill">get_source_map</span><span class="pill">mockData.js</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 0</span></div>
-      <div class="row"><span>Time</span><span class="v">2573ms</span></div>
-      <div class="pills"></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> _build_ward_data, _fallback_sources, get_explainability, services.py, source_model.py</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q4</span>If I refactor apiFetch, what other code will break?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">100.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">42.9%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">6 / 14</span></div>
-      <div class="row"><span>Time</span><span class="v">72ms</span></div>
-      <div class="pills"><span class="pill">AdminDashboard</span><span class="pill">App</span><span class="pill">ReportMarkers</span><span class="pill">WindOverlay</span><span class="pill">fetchCityTrend</span><span class="pill">fetchHotspots</span><span class="pill hit">fetchImpactMetrics</span><span class="pill hit">fetchRecentReports</span><span class="pill">fetchReportMarkers</span><span class="pill">fetchSourceMap</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 1</span></div>
-      <div class="row"><span>Time</span><span class="v">663ms</span></div>
-      <div class="pills"><span class="pill">wardApi.js</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> fetchImpactMetrics, fetchRecentReports, fetchWardDetail, fetchWards, fetchWindData, submitReport</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q5</span>If I change _http_get_json, what downstream code is affected?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">25.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">25.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">1 / 4</span></div>
-      <div class="row"><span>Time</span><span class="v">27ms</span></div>
-      <div class="pills"><span class="pill">Command</span><span class="pill">fetch_all_wards</span><span class="pill">fetch_aqicn_by_geo</span><span class="pill hit">fetch_openmeteo</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 1</span></div>
-      <div class="row"><span>Time</span><span class="v">523ms</span></div>
-      <div class="pills"><span class="pill">data_fetcher.py</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> _build_ward_data, _get_latest_reading, fetch_aqicn, fetch_openmeteo</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q6</span>What functions does _build_ward_data call internally?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">80.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">66.7%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">4 / 6</span></div>
-      <div class="row"><span>Time</span><span class="v">25ms</span></div>
-      <div class="pills"><span class="pill hit">SeededRandom</span><span class="pill hit">_fallback_sources</span><span class="pill hit">get_aqi_tier</span><span class="pill">get_dominant_source</span><span class="pill hit">get_explainability</span><span class="pill">predict_sources</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 1</span></div>
-      <div class="row"><span>Time</span><span class="v">515ms</span></div>
-      <div class="pills"><span class="pill">services.py</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> SeededRandom, _fallback_sources, _get_latest_reading, get_aqi_tier, get_explainability</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q7</span>What calls the getCSRFToken function?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">50.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">100.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">2 / 2</span></div>
-      <div class="row"><span>Time</span><span class="v">30ms</span></div>
-      <div class="pills"><span class="pill hit">login</span><span class="pill hit">logout</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 1</span></div>
-      <div class="row"><span>Time</span><span class="v">581ms</span></div>
-      <div class="pills"><span class="pill">authApi.js</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> fetchRecentReports, login, logout, submitReport</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q8</span>Are there any unused functions I can safely delete?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">100.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">25.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">5 / 20</span></div>
-      <div class="row"><span>Time</span><span class="v">25ms</span></div>
-      <div class="pills"><span class="pill">AdminDashboard</span><span class="pill">App</span><span class="pill">DetailPanel</span><span class="pill">Header</span><span class="pill">HotspotCards</span><span class="pill">LeftPanel</span><span class="pill">MapController</span><span class="pill">MapModeToggle</span><span class="pill">PolicyRecommendations</span><span class="pill">ReportMarkers</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 0</span></div>
-      <div class="row"><span>Time</span><span class="v">1345ms</span></div>
-      <div class="pills"></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> _has_real_data, buildDistrictMap, getAqiFillColor, getMitigations, simulate_intervention</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q9</span>What are the most important functions in this codebase?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">100.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">30.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">6 / 20</span></div>
-      <div class="row"><span>Time</span><span class="v">24ms</span></div>
-      <div class="pills"><span class="pill">SeededRandom</span><span class="pill">_build_ward_data</span><span class="pill">_fallback_sources</span><span class="pill hit">_get_latest_reading</span><span class="pill">_http_get_json</span><span class="pill hit">apiFetch</span><span class="pill">getAqiCategory</span><span class="pill">getAqiColor</span><span class="pill hit">getAqiTier</span><span class="pill hit">getCSRFToken</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 0</span></div>
-      <div class="row"><span>Time</span><span class="v">1253ms</span></div>
-      <div class="pills"></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> _get_latest_reading, apiFetch, getAqiTier, getCSRFToken, useAppDispatch, useAppState</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q10</span>I want to change the AQI color scheme. What files need updating?</div>
-    <span class="tag tag-loss">BASELINE WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">60.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">16.7%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">3 / 18</span></div>
-      <div class="row"><span>Time</span><span class="v">2114ms</span></div>
-      <div class="pills"><span class="pill">AdminSidebar.jsx</span><span class="pill">CityTrendChart.jsx</span><span class="pill hit">DetailPanel.jsx</span><span class="pill">DistrictList.jsx</span><span class="pill">Header.jsx</span><span class="pill">LeftPanel.jsx</span><span class="pill">PolicyRecommendations.jsx</span><span class="pill">SearchBar.jsx</span><span class="pill">SourceLayer.jsx</span><span class="pill hit">WardLayer.jsx</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">80.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">33.3%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">4 / 12</span></div>
-      <div class="row"><span>Time</span><span class="v">1825ms</span></div>
-      <div class="pills"><span class="pill">AdminSidebar.jsx</span><span class="pill">CityTrendChart.jsx</span><span class="pill hit">DetailPanel.jsx</span><span class="pill">DistrictList.jsx</span><span class="pill">Header.jsx</span><span class="pill hit">HotspotCards.jsx</span><span class="pill">LeftPanel.jsx</span><span class="pill">PolicyRecommendations.jsx</span><span class="pill">SearchBar.jsx</span><span class="pill">SourceLayer.jsx</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> AqiLegend.jsx, DetailPanel.jsx, HotspotCards.jsx, WardLayer.jsx, aqiUtils.js</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q11</span>Where is the wind overlay feature implemented?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">100.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">15.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">3 / 20</span></div>
-      <div class="row"><span>Time</span><span class="v">4210ms</span></div>
-      <div class="pills"><span class="pill">AdminDashboard</span><span class="pill">AdminDashboard.jsx</span><span class="pill">AdminSidebar</span><span class="pill">AdminSidebar.jsx</span><span class="pill">LeftPanel</span><span class="pill">LeftPanel.jsx</span><span class="pill">LoginPage</span><span class="pill">LoginPage.jsx</span><span class="pill">ReportModal</span><span class="pill">ReportModal.jsx</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">33.3%</span></div>
-      <div class="row"><span>Precision</span><span class="v">50.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">1 / 2</span></div>
-      <div class="row"><span>Time</span><span class="v">1123ms</span></div>
-      <div class="pills"><span class="pill">MapView.jsx</span><span class="pill hit">WindOverlay.jsx</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> WindOverlay.jsx, fetchWindData, get_wind_data</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q12</span>How does ward data flow from the API to the frontend map?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">28.6%</span></div>
-      <div class="row"><span>Precision</span><span class="v">13.3%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">2 / 15</span></div>
-      <div class="row"><span>Time</span><span class="v">4252ms</span></div>
-      <div class="pills"><span class="pill">CitySourceMapView</span><span class="pill hit">_build_ward_data</span><span class="pill">_get_latest_reading</span><span class="pill hit">apiFetch</span><span class="pill">data_fetcher.py</span><span class="pill">fetchSourceMap</span><span class="pill">fetch_all_wards</span><span class="pill">get_hotspots</span><span class="pill">get_reports_for_map</span><span class="pill">get_source_map</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">14.3%</span></div>
-      <div class="row"><span>Precision</span><span class="v">25.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">1 / 4</span></div>
-      <div class="row"><span>Time</span><span class="v">1650ms</span></div>
-      <div class="pills"><span class="pill">App.jsx</span><span class="pill">MapView.jsx</span><span class="pill hit">WardLayer.jsx</span><span class="pill">wardApi.js</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> AppContext.jsx, WardLayer.jsx, _build_ward_data, apiFetch, fetchWards, get_all_wards, useAppState</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q13</span>What happens when a user submits a pollution report?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">50.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">12.5%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">2 / 16</span></div>
-      <div class="row"><span>Time</span><span class="v">4241ms</span></div>
-      <div class="pills"><span class="pill">RecentReportsView</span><span class="pill">ReportMapView</span><span class="pill">ReportModal</span><span class="pill hit">ReportModal.jsx</span><span class="pill">ReportSubmitView</span><span class="pill">_fallback_sources</span><span class="pill">_generate_summary</span><span class="pill">getExplainability</span><span class="pill">get_explainability</span><span class="pill">mockData.js</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 0</span></div>
-      <div class="row"><span>Time</span><span class="v">1314ms</span></div>
-      <div class="pills"></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> ReportFAB.jsx, ReportModal.jsx, submitReport, submit_report</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q14</span>What are all the API functions in the frontend?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">40.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">22.2%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">4 / 18</span></div>
-      <div class="row"><span>Time</span><span class="v">4205ms</span></div>
-      <div class="pills"><span class="pill">CitySourceMapView</span><span class="pill">Command</span><span class="pill">HotspotView</span><span class="pill">RecentReportsView</span><span class="pill">ReportMapView</span><span class="pill">WardDetailView</span><span class="pill">WardListView</span><span class="pill">WardsConfig</span><span class="pill">_build_ward_data</span><span class="pill">_http_get_json</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">0.0%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">0 / 0</span></div>
-      <div class="row"><span>Time</span><span class="v">2177ms</span></div>
-      <div class="pills"></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> apiFetch, fetchImpactMetrics, fetchRecentReports, fetchWardDetail, fetchWards, fetchWindData, getCSRFToken, login, logout, submitReport</div>
-</div>
-<div class="card">
-  <div class="card-head">
-    <div class="q"><span class="tid">Q15</span>How does state management work in this React app?</div>
-    <span class="tag tag-win">ENHANCED WINS</span>
-  </div>
-  <div class="cols">
-    <div class="col enh">
-      <div class="title">Enhanced (MCP Tools)</div>
-      <div class="row"><span>Recall</span><span class="v">75.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">15.8%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">3 / 19</span></div>
-      <div class="row"><span>Time</span><span class="v">4206ms</span></div>
-      <div class="pills"><span class="pill">AdminDashboard</span><span class="pill">AdminDashboard.jsx</span><span class="pill">AdminSidebar</span><span class="pill">AdminSidebar.jsx</span><span class="pill hit">AppContext.jsx</span><span class="pill hit">AppProvider</span><span class="pill">Command</span><span class="pill">LoginPage</span><span class="pill">LoginPage.jsx</span><span class="pill">ReportFAB</span></div>
-    </div>
-    <div class="col bas">
-      <div class="title">Baseline (grep)</div>
-      <div class="row"><span>Recall</span><span class="v">25.0%</span></div>
-      <div class="row"><span>Precision</span><span class="v">1.4%</span></div>
-      <div class="row"><span>Hits / Total</span><span class="v">1 / 69</span></div>
-      <div class="row"><span>Time</span><span class="v">2890ms</span></div>
-      <div class="pills"><span class="pill hit">AppContext.jsx</span><span class="pill">CRS.EPSG3395.js</span><span class="pill">CRS.EPSG3857.js</span><span class="pill">Layer.js</span><span class="pill">LayersControl.js</span><span class="pill">MapContainer.js</span><span class="pill">Pane.js</span><span class="pill">Projection.SphericalMercator.js</span><span class="pill">ReactSmooth.js</span><span class="pill">Recharts.js</span></div>
-    </div>
-  </div>
-  <div class="gt"><b>Ground truth:</b> AppContext.jsx, AppProvider, useAppDispatch, useAppState</div>
-</div>
-<div class="foot">Generated by Codebase Intelligence eval suite · 15 tests · Sparrow project</div>
-</div>
+
 </body>
 </html>
