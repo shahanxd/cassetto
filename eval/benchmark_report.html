@@ -1,0 +1,218 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Cassetto Benchmark Report</title>
+<style>
+  :root { --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e; --text: #e4e4ef;
+           --muted: #8888a0; --accent: #6366f1; --green: #22c55e; --yellow: #eab308; --red: #ef4444; }
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text);
+          line-height: 1.6; padding: 2rem; max-width: 1000px; margin: 0 auto; }
+  h1 { font-size: 2rem; margin-bottom: 0.25rem; background: linear-gradient(135deg, var(--accent), #a78bfa);
+        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
+  h2 { font-size: 1.3rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border);
+        padding-bottom: 0.5rem; }
+  .subtitle { color: var(--muted); margin-bottom: 2rem; }
+  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+           padding: 1.5rem; margin-bottom: 1.5rem; }
+  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
+  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+          padding: 1.25rem; text-align: center; }
+  .kpi .value { font-size: 2rem; font-weight: 700; }
+  .kpi .label { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
+  .green { color: var(--green); } .yellow { color: var(--yellow); } .red { color: var(--red); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; color: var(--muted); font-size: 0.8rem; text-transform: uppercase;
+       letter-spacing: 0.05em; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
+  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
+  tr:hover { background: rgba(99, 102, 241, 0.05); }
+  .bar { height: 8px; border-radius: 4px; min-width: 4px; }
+  .winner { color: var(--green); font-weight: 600; }
+  .badge { padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
+  .badge.fast { background: rgba(34,197,94,0.15); color: var(--green); }
+  .badge.medium { background: rgba(234,179,8,0.15); color: var(--yellow); }
+  .badge.slow { background: rgba(239,68,68,0.15); color: var(--red); }
+  .method { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
+             padding: 1.25rem; margin-top: 1rem; font-size: 0.85rem; color: var(--muted); }
+  .method h3 { color: var(--text); font-size: 0.95rem; margin-bottom: 0.5rem; }
+  code { background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
+  @media (max-width: 600px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
+</style>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
+</head>
+<body>
+<h1>Cassetto Benchmark Report</h1>
+<p class="subtitle">Generated May 26, 2026 at 00:45 &middot; Project: Sparrow (React + Django, 52 files)</p>
+
+<div class="kpi-grid">
+  <div class="kpi"><div class="value green">92%</div><div class="label">Avg Precision</div></div>
+  <div class="kpi"><div class="value green">91%</div><div class="label">Avg Recall</div></div>
+  <div class="kpi"><div class="value green">0.475</div><div class="label">MRR (Search)</div></div>
+  <div class="kpi"><div class="value green">32ms</div><div class="label">blast_radius p50</div></div>
+  <div class="kpi"><div class="value">9</div><div class="label">Tools Tested</div></div>
+</div>
+
+<h2>Tier 1: Tool Output Accuracy</h2>
+<p style="color:var(--muted);margin-bottom:1rem">Each tool output is compared against manually verified ground truth. No LLM involved in scoring.</p>
+<div class="card">
+<table>
+  <thead><tr><th>Tool</th><th>Query</th><th>Precision</th><th>Recall</th><th style="width:20%">Recall</th></tr></thead>
+  <tbody>
+        <tr>
+          <td><code>blast_radius</code></td>
+          <td>apiFetch</td>
+          <td style="text-align:center">56%</td>
+          <td style="text-align:center">90%</td>
+          <td><div class="bar" style="width:90%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>find_references</code></td>
+          <td>apiFetch</td>
+          <td style="text-align:center">90%</td>
+          <td style="text-align:center">100%</td>
+          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>goto_definition</code></td>
+          <td>getAqiColor</td>
+          <td style="text-align:center">100%</td>
+          <td style="text-align:center">100%</td>
+          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>get_architecture_summary</code></td>
+          <td>frameworks</td>
+          <td style="text-align:center">100%</td>
+          <td style="text-align:center">50%</td>
+          <td><div class="bar" style="width:50%;background:#eab308"></div></td>
+        </tr>
+        <tr>
+          <td><code>find_entry_points</code></td>
+          <td>all</td>
+          <td style="text-align:center">100%</td>
+          <td style="text-align:center">100%</td>
+          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>get_imports</code></td>
+          <td>services.py</td>
+          <td style="text-align:center">100%</td>
+          <td style="text-align:center">100%</td>
+          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>explain_symbol</code></td>
+          <td>_build_ward_data</td>
+          <td style="text-align:center">80%</td>
+          <td style="text-align:center">80%</td>
+          <td><div class="bar" style="width:80%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>find_dead_code</code></td>
+          <td>all</td>
+          <td style="text-align:center">100%</td>
+          <td style="text-align:center">100%</td>
+          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
+        </tr>
+        <tr>
+          <td><code>get_repo_map</code></td>
+          <td>top_20</td>
+          <td style="text-align:center">100%</td>
+          <td style="text-align:center">100%</td>
+          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
+        </tr></tbody>
+</table>
+</div>
+
+<h2>Tier 2: Retrieval Quality (IR Metrics)</h2>
+<p style="color:var(--muted);margin-bottom:1rem">Cassetto semantic search vs keyword-only baseline on 5 queries. Same indexed data, different ranking.</p>
+<div class="card">
+<table>
+  <thead><tr><th>Metric</th><th style="text-align:center">Cassetto</th><th style="text-align:center">Keyword</th><th style="text-align:center">Uplift</th></tr></thead>
+  <tbody>
+        <tr>
+          <td><strong>MRR</strong></td>
+          <td style="text-align:center" class="winner">0.475</td>
+          <td style="text-align:center" class="">0.350</td>
+          <td style="text-align:center">1.4x</td>
+        </tr>
+        <tr>
+          <td><strong>P@3</strong></td>
+          <td style="text-align:center" class="">0.267</td>
+          <td style="text-align:center" class="">0.267</td>
+          <td style="text-align:center">1.0x</td>
+        </tr>
+        <tr>
+          <td><strong>P@5</strong></td>
+          <td style="text-align:center" class="">0.240</td>
+          <td style="text-align:center" class="">0.240</td>
+          <td style="text-align:center">1.0x</td>
+        </tr>
+        <tr>
+          <td><strong>NDCG@5</strong></td>
+          <td style="text-align:center" class="winner">0.348</td>
+          <td style="text-align:center" class="">0.305</td>
+          <td style="text-align:center">1.1x</td>
+        </tr></tbody>
+</table>
+</div>
+
+<h2>Tier 3: Performance</h2>
+<p style="color:var(--muted);margin-bottom:1rem">Latency benchmarks. All graph tools respond sub-100ms. Search includes embedding generation.</p>
+<div class="card">
+<table>
+  <thead><tr><th>Operation</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th>Rating</th></tr></thead>
+  <tbody>
+            <tr>
+              <td><code>search_code</code></td>
+              <td style="text-align:right">2144 ms</td>
+              <td style="text-align:right">2166 ms</td>
+              <td><span class="badge slow">slow</span></td>
+            </tr>
+            <tr>
+              <td><code>blast_radius</code></td>
+              <td style="text-align:right">32 ms</td>
+              <td style="text-align:right">34 ms</td>
+              <td><span class="badge fast">fast</span></td>
+            </tr>
+            <tr>
+              <td><code>explain_symbol</code></td>
+              <td style="text-align:right">32 ms</td>
+              <td style="text-align:right">35 ms</td>
+              <td><span class="badge fast">fast</span></td>
+            </tr>
+            <tr>
+              <td><code>get_architecture_summary</code></td>
+              <td style="text-align:right">41 ms</td>
+              <td style="text-align:right">48 ms</td>
+              <td><span class="badge fast">fast</span></td>
+            </tr>
+            <tr>
+              <td><code>find_dead_code</code></td>
+              <td style="text-align:right">25 ms</td>
+              <td style="text-align:right">26 ms</td>
+              <td><span class="badge fast">fast</span></td>
+            </tr>
+            <tr>
+              <td><code>index_throughput</code></td>
+              <td style="text-align:right">3.8s</td>
+              <td style="text-align:right">52 files</td>
+              <td><span class="badge fast">13.7 files/s</span></td>
+            </tr></tbody>
+</table>
+</div>
+
+<div class="method">
+  <h3>Methodology</h3>
+  <p><strong>Tier 1:</strong> Ground truth was manually constructed by inspecting the Sparrow codebase (React + Django AQI dashboard, 52 files).
+  Each tool's output is parsed and compared against known-correct facts using set-based precision and recall. Zero LLM involvement in scoring.</p>
+  <p style="margin-top:0.5rem"><strong>Tier 2:</strong> Five semantic search queries with manually labeled relevant files.
+  Cassetto uses hybrid BM25 + embedding search with graph-aware reranking. Baseline uses keyword matching on the same indexed chunks.
+  Metrics: MRR (Mean Reciprocal Rank), Precision@K, nDCG@5.</p>
+  <p style="margin-top:0.5rem"><strong>Tier 3:</strong> Latency measured with <code>time.perf_counter()</code>, 5 runs per operation.
+  p50 = median, p95 = worst-case. Index throughput includes parsing, embedding, graph construction, and git analysis.</p>
+</div>
+
+</body></html>

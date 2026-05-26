@@ -1,0 +1,123 @@
+{
+  "tier1_accuracy": [
+    {
+      "tool": "blast_radius",
+      "query": "apiFetch",
+      "precision": 0.562,
+      "recall": 0.9,
+      "found": 16,
+      "expected": 10
+    },
+    {
+      "tool": "find_references",
+      "query": "apiFetch",
+      "precision": 0.9,
+      "recall": 1.0,
+      "found": 10,
+      "expected": 9
+    },
+    {
+      "tool": "goto_definition",
+      "query": "getAqiColor",
+      "precision": 1.0,
+      "recall": 1.0,
+      "found": 3,
+      "expected": 3
+    },
+    {
+      "tool": "get_architecture_summary",
+      "query": "frameworks",
+      "precision": 1.0,
+      "recall": 0.5,
+      "found": 1,
+      "expected": 2
+    },
+    {
+      "tool": "find_entry_points",
+      "query": "all",
+      "precision": 1.0,
+      "recall": 1.0,
+      "found": 4,
+      "expected": 4
+    },
+    {
+      "tool": "get_imports",
+      "query": "services.py",
+      "precision": 1.0,
+      "recall": 1.0,
+      "found": 4,
+      "expected": 4
+    },
+    {
+      "tool": "explain_symbol",
+      "query": "_build_ward_data",
+      "precision": 0.8,
+      "recall": 0.8,
+      "found": 4,
+      "expected": 5
+    },
+    {
+      "tool": "find_dead_code",
+      "query": "all",
+      "precision": 1.0,
+      "recall": 1.0,
+      "found": 2,
+      "expected": 2
+    },
+    {
+      "tool": "get_repo_map",
+      "query": "top_20",
+      "precision": 1.0,
+      "recall": 1.0,
+      "found": 3,
+      "expected": 3
+    }
+  ],
+  "tier2_search": {
+    "cassetto": {
+      "mrr": 0.475,
+      "p@3": 0.267,
+      "p@5": 0.24,
+      "ndcg@5": 0.348
+    },
+    "grep_baseline": {
+      "mrr": 0.35,
+      "p@3": 0.267,
+      "p@5": 0.24,
+      "ndcg@5": 0.305
+    },
+    "queries": 5
+  },
+  "tier3_performance": {
+    "search_code": {
+      "p50_ms": 2144.3,
+      "p95_ms": 2166.2,
+      "runs": 5
+    },
+    "blast_radius": {
+      "p50_ms": 31.9,
+      "p95_ms": 33.5,
+      "runs": 5
+    },
+    "explain_symbol": {
+      "p50_ms": 31.6,
+      "p95_ms": 34.9,
+      "runs": 5
+    },
+    "get_architecture_summary": {
+      "p50_ms": 40.7,
+      "p95_ms": 48.5,
+      "runs": 3
+    },
+    "find_dead_code": {
+      "p50_ms": 25.0,
+      "p95_ms": 25.7,
+      "runs": 5
+    },
+    "index_throughput": {
+      "files": 52,
+      "time_s": 3.8,
+      "files_per_sec": 13.7
+    }
+  }
+}
