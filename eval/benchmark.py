@@ -339,6 +339,174 @@ def tier3_performance():
 
 
 # ═══════════════════════════════════════════════════════════════
+# TIER 4: SIDE-BY-SIDE — Raw outputs, Cassetto vs baseline
+# ═══════════════════════════════════════════════════════════════
+
+COMPARISON_SCENARIOS = [
+    {
+        "id": "impact",
+        "question": "What breaks if I change the apiFetch function?",
+        "tool": "blast_radius",
+        "tool_args": {"symbol_name": "apiFetch"},
+        "baseline_method": "keyword",
+        "baseline_query": "apiFetch",
+        "ground_truth": "10+ functions in wardApi.js call apiFetch; changing it breaks fetchWards, fetchHotspots, submitReport, etc.",
+    },
+    {
+        "id": "definition",
+        "question": "Where is getAqiColor defined and what does it do?",
+        "tool": "goto_definition",
+        "tool_args": {"symbol_name": "getAqiColor"},
+        "baseline_method": "keyword",
+        "baseline_query": "getAqiColor",
+        "ground_truth": "Defined in src/utils/aqiUtils.js around line 23. Maps AQI values to CSS colors.",
+    },
+    {
+        "id": "architecture",
+        "question": "What frameworks does this project use?",
+        "tool": "get_architecture_summary",
+        "tool_args": {},
+        "baseline_method": "keyword",
+        "baseline_query": "import React from django",
+        "ground_truth": "React (frontend), Django (backend), Vite (bundler), Tailwind CSS (styling).",
+    },
+    {
+        "id": "hotspots",
+        "question": "What are the riskiest files in this codebase?",
+        "tool": "get_hotspots",
+        "tool_args": {},
+        "baseline_method": "keyword",
+        "baseline_query": "bug fix refactor TODO",
+        "ground_truth": "services.py (high churn, complex logic), wardApi.js (many functions), views.py (API surface).",
+    },
+    {
+        "id": "dead_code",
+        "question": "Is there any dead code I can safely delete?",
+        "tool": "find_dead_code",
+        "tool_args": {},
+        "baseline_method": "keyword",
+        "baseline_query": "unused deprecated",
+        "ground_truth": "Functions like _has_real_data and buildDistrictMap are never called by any other code.",
+    },
+    {
+        "id": "explain",
+        "question": "Explain the _build_ward_data function — who calls it, what does it call?",
+        "tool": "explain_symbol",
+        "tool_args": {"symbol_name": "_build_ward_data"},
+        "baseline_method": "keyword",
+        "baseline_query": "_build_ward_data",
+        "ground_truth": "Defined in services.py. Called by ward_list view. Calls json.loads, math functions, model queries. PageRank > 0.",
+    },
+    {
+        "id": "search",
+        "question": "Find code related to AQI color calculation",
+        "tool": "search_code",
+        "tool_args": {"query": "AQI color calculation", "limit": 5},
+        "baseline_method": "keyword",
+        "baseline_query": "AQI color calculation",
+        "ground_truth": "aqiUtils.js contains getAqiColor, getAqiTier. WardLayer.jsx uses colors for map rendering.",
+    },
+]
+
+
+def _baseline_keyword_search(query: str) -> str:
+    """Simulate what an LLM sees without MCP: keyword matches from indexed chunks."""
+    from store import get_sqlite_conn
+    words = query.lower().split()
+    conn = get_sqlite_conn("sparrow")
+    try:
+        rows = conn.execute("SELECT file, symbol, chunk, start_line, end_line FROM chunks_fts").fetchall()
+    except Exception:
+        return "No results (database not available)"
+
+    scored = []
+    for file_path, symbol, chunk, sl, el in rows:
+        content = (chunk or "").lower()
+        fname = Path(file_path).name
+        score = sum(1 for w in words if w in content or w in fname.lower() or w in (symbol or "").lower())
+        if score > 0:
+            scored.append((score, fname, symbol, sl, el, (chunk or "")[:300]))
+
+    scored.sort(reverse=True)
+    if not scored:
+        return "No keyword matches found."
+
+    lines = []
+    for score, fname, sym, sl, el, snippet in scored[:5]:
+        lines.append(f"FILE: {fname} | {sym} (lines {sl}-{el})")
+        lines.append(snippet.strip()[:200])
+        lines.append("")
+    return "\n".join(lines)
+
+
+def tier4_sidebyside():
+    """Run each scenario through both Cassetto and baseline, capture raw outputs."""
+    from server import (blast_radius, goto_definition, get_architecture_summary,
+                        get_hotspots, find_dead_code, explain_symbol, search_code)
+
+    tool_map = {
+        "blast_radius": blast_radius,
+        "goto_definition": goto_definition,
+        "get_architecture_summary": get_architecture_summary,
+        "get_hotspots": get_hotspots,
+        "find_dead_code": find_dead_code,
+        "explain_symbol": explain_symbol,
+        "search_code": search_code,
+    }
+
+    comparisons = []
+    for sc in COMPARISON_SCENARIOS:
+        print(f"  Running: {sc['id']}...")
+
+        # Cassetto MCP tool
+        t0 = time.perf_counter()
+        try:
+            cassetto_raw = tool_map[sc["tool"]](**sc["tool_args"])
+        except Exception as e:
+            cassetto_raw = f"ERROR: {e}"
+        cassetto_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+        # Baseline keyword search
+        t0 = time.perf_counter()
+        baseline_raw = _baseline_keyword_search(sc["baseline_query"])
+        baseline_ms = round((time.perf_counter() - t0) * 1000, 1)
+
+        # Score: does the output contain the key ground truth facts?
+        gt_words = [w.lower() for w in sc["ground_truth"].replace(",", " ").replace(".", " ").split()
+                     if len(w) > 3]
+        cassetto_hits = sum(1 for w in gt_words if w in cassetto_raw.lower())
+        baseline_hits = sum(1 for w in gt_words if w in baseline_raw.lower())
+        cassetto_coverage = round(cassetto_hits / len(gt_words), 3) if gt_words else 0
+        baseline_coverage = round(baseline_hits / len(gt_words), 3) if gt_words else 0
+
+        comparisons.append({
+            "id": sc["id"],
+            "question": sc["question"],
+            "tool": sc["tool"],
+            "ground_truth": sc["ground_truth"],
+            "cassetto": {
+                "raw": cassetto_raw[:2000],
+                "latency_ms": cassetto_ms,
+                "coverage": cassetto_coverage,
+            },
+            "baseline": {
+                "raw": baseline_raw[:2000],
+                "latency_ms": baseline_ms,
+                "coverage": baseline_coverage,
+            },
+            "verdict": "cassetto" if cassetto_coverage > baseline_coverage else
+                       "baseline" if baseline_coverage > cassetto_coverage else "tie",
+        })
+
+    wins = sum(1 for c in comparisons if c["verdict"] == "cassetto")
+    losses = sum(1 for c in comparisons if c["verdict"] == "baseline")
+    ties = sum(1 for c in comparisons if c["verdict"] == "tie")
+    print(f"\n  Cassetto wins: {wins} | Baseline wins: {losses} | Ties: {ties}")
+
+    return comparisons
+
+
+# ═══════════════════════════════════════════════════════════════
 # REPORT
 # ═══════════════════════════════════════════════════════════════
 
@@ -377,8 +545,13 @@ def run_benchmark():
         elif "files_per_sec" in stats:
             print(f"  {tool:30s} {stats['files']} files in {stats['time_s']}s ({stats['files_per_sec']} files/sec)")
 
+    # Tier 4
+    print("\n--- TIER 4: Side-by-Side Comparison ---")
+    t4 = tier4_sidebyside()
+
     # Save
-    report = {"tier1_accuracy": t1, "tier2_search": t2, "tier3_performance": t3}
+    report = {"tier1_accuracy": t1, "tier2_search": t2, "tier3_performance": t3,
+              "tier4_comparisons": t4}
     out = os.path.join(os.path.dirname(__file__), "benchmark_results.json")
     with open(out, 'w') as f:
         json.dump(report, f, indent=2)
@@ -389,3 +562,4 @@ def run_benchmark():
 
 if __name__ == "__main__":
     run_benchmark()
+

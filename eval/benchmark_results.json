@@ -90,34 +90,155 @@
   },
   "tier3_performance": {
     "search_code": {
-      "p50_ms": 2144.3,
-      "p95_ms": 2166.2,
+      "p50_ms": 2116.7,
+      "p95_ms": 2136.4,
       "runs": 5
     },
     "blast_radius": {
-      "p50_ms": 31.9,
-      "p95_ms": 33.5,
+      "p50_ms": 26.2,
+      "p95_ms": 27.3,
       "runs": 5
     },
     "explain_symbol": {
-      "p50_ms": 31.6,
-      "p95_ms": 34.9,
+      "p50_ms": 27.6,
+      "p95_ms": 28.3,
       "runs": 5
     },
     "get_architecture_summary": {
-      "p50_ms": 40.7,
-      "p95_ms": 48.5,
+      "p50_ms": 33.6,
+      "p95_ms": 38.5,
       "runs": 3
     },
     "find_dead_code": {
-      "p50_ms": 25.0,
-      "p95_ms": 25.7,
+      "p50_ms": 20.1,
+      "p95_ms": 21.4,
       "runs": 5
     },
     "index_throughput": {
       "files": 52,
-      "time_s": 3.8,
-      "files_per_sec": 13.7
+      "time_s": 3.6,
+      "files_per_sec": 14.6
     }
-  }
+  },
+  "tier4_comparisons": [
+    {
+      "id": "impact",
+      "question": "What breaks if I change the apiFetch function?",
+      "tool": "blast_radius",
+      "ground_truth": "10+ functions in wardApi.js call apiFetch; changing it breaks fetchWards, fetchHotspots, submitReport, etc.",
+      "cassetto": {
+        "raw": "{\n  \"symbol\": \"apiFetch\",\n  \"blast_radius\": [\n    {\n      \"name\": \"fetchHotspots\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchReportMarkers\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchImpactMetrics\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchWards\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchWardDetail\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchWindData\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchSourceMap\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchCityTrend\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"submitReport\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"fetchRecentReports\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"depth\": 1\n    },\n    {\n      \"name\": \"AdminDashboard\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\components\\\\AdminDashboard.jsx\",\n      \"depth\": 2\n    },\n    {\n      \"name\": \"App\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\App.jsx\",\n      \"depth\": 2\n    },\n    {\n      \"name\": \"",
+        "latency_ms": 33.2,
+        "coverage": 0.444
+      },
+      "baseline": {
+        "raw": "FILE: wardApi.js | submitReport (lines 49-54)\nasync function submitReport(reportData) {\r\n  return apiFetch('/reports/', {\r\n    method: 'POST',\r\n    body: JSON.stringify(reportData),\r\n  });\r\n}\n\nFILE: wardApi.js | fetchWindData (lines 63-65)\nasync function fetchWindData() {\r\n  return apiFetch('/wind/');\r\n}\n\nFILE: wardApi.js | fetchWards (lines 20-23)\nasync function fetchWards() {\r\n  const data = await apiFetch('/wards/');\r\n  return data.wards;\r\n}\n\nFILE: wardApi.js | fetchWardDetail (lines 26-28)\nasync function fetchWardDetail(wardNo) {\r\n  return apiFetch(`/wards/${wardNo}/`);\r\n}\n\nFILE: wardApi.js | fetchSourceMap (lines 43-46)\nasync function fetchSourceMap() {\r\n  const data = await apiFetch('/city-source-map/');\r\n  return data.wards;\r\n}\n",
+        "latency_ms": 2.8,
+        "coverage": 0.333
+      },
+      "verdict": "cassetto"
+    },
+    {
+      "id": "definition",
+      "question": "Where is getAqiColor defined and what does it do?",
+      "tool": "goto_definition",
+      "ground_truth": "Defined in src/utils/aqiUtils.js around line 23. Maps AQI values to CSS colors.",
+      "cassetto": {
+        "raw": "FILE: C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\utils\\aqiUtils.js (lines 23\u201325)\nTYPE: function_declaration\n```\n\n```",
+        "latency_ms": 22.8,
+        "coverage": 0.143
+      },
+      "baseline": {
+        "raw": "FILE: aqiUtils.js | getAqiColor (lines 23-25)\nfunction getAqiColor(aqi) {\r\n  return getAqiTier(aqi).color;\r\n}\n\nFILE: WardLayer.jsx | WardLayer (lines 5-103)\nfunction WardLayer() {\r\n  const { geojson, wardList, selectedWard, hoveredWard, mapMode } = useAppState();\r\n  const dispatch = useAppDispatch();\r\n  const geoJsonRef = useRef(null);\r\n\r\n  // Build ward \n\nFILE: SourceLayer.jsx | SourceLayer (lines 9-118)\nfunction SourceLayer() {\r\n  const { geojson, sourceMapData, wardList, selectedWard, hoveredWard, mapMode } = useAppState();\r\n  const dispatch = useAppDispatch();\r\n  const geoJsonRef = useRef(null);\r\n\r\n\nFILE: SearchBar.jsx | SearchBar (lines 5-150)\nfunction SearchBar() {\r\n  const { geojson, wardList } = useAppState();\r\n  const dispatch = useAppDispatch();\r\n  const [query, setQuery] = useState('');\r\n  const [isOpen, setIsOpen] = useState(false);\r\n\nFILE: PolicyRecommendations.jsx | PolicyRecommendations (lines 20-126)\nfunction PolicyRecommendations() {\r\n  const { wardList, geojson } = useAppState();\r\n  const dispatch = useAppDispatch();\r\n  const barRef = useRef(null);\r\n\r\n  // Get top 5 worst wards with their mitiga\n",
+        "latency_ms": 2.8,
+        "coverage": 0.143
+      },
+      "verdict": "tie"
+    },
+    {
+      "id": "architecture",
+      "question": "What frameworks does this project use?",
+      "tool": "get_architecture_summary",
+      "ground_truth": "React (frontend), Django (backend), Vite (bundler), Tailwind CSS (styling).",
+      "cassetto": {
+        "raw": "{\n  \"file_count\": 52,\n  \"languages\": {\n    \"javascript\": 34,\n    \"python\": 18\n  },\n  \"frameworks\": [\n    {\n      \"framework\": \"django\",\n      \"confidence\": 0.6,\n      \"evidence\": [\n        \"files: manage.py, wsgi.py\"\n      ]\n    }\n  ],\n  \"entry_points\": [],\n  \"layers\": {\n    \"other\": 21,\n    \"config\": 3,\n    \"data\": 1,\n    \"controllers\": 2,\n    \"ui\": 22,\n    \"utils\": 3\n  },\n  \"top_symbols\": [\n    {\n      \"name\": \"apiFetch\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\wardApi.js\",\n      \"type\": \"function_declaration\",\n      \"pagerank\": 0.0605\n    },\n    {\n      \"name\": \"getAqiTier\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\utils\\\\aqiUtils.js\",\n      \"type\": \"function_declaration\",\n      \"pagerank\": 0.0527\n    },\n    {\n      \"name\": \"useAppState\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\context\\\\AppContext.jsx\",\n      \"type\": \"function_declaration\",\n      \"pagerank\": 0.0358\n    },\n    {\n      \"name\": \"useAppDispatch\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\context\\\\AppContext.jsx\",\n      \"type\": \"function_declaration\",\n      \"pagerank\": 0.0326\n    },\n    {\n      \"name\": \"_get_latest_reading\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"type\": \"function_definition\",\n      \"pagerank\": 0.0285\n    },\n    {\n      \"name\": \"getCSRFToken\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\api\\\\authApi.js\",\n      \"type\": \"function_declaration\",\n      \"pagerank\": 0.0248\n    },\n    {\n      \"name\": \"_build_ward_data\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"type\": \"function_definition\",\n      \"pagerank\": 0.0198\n    },\n    {\n      \"name\": \"getAqiColor\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\src\\\\utils\\\\aqiUtils.",
+        "latency_ms": 36.4,
+        "coverage": 0.125
+      },
+      "baseline": {
+        "raw": "FILE: wsgi.py | module_level (lines 0-4)\nimport os\r\nfrom django.core.wsgi import get_wsgi_application\r\nos.environ.setdefault('DJANGO_SETTINGS_MODULE', 'config.settings')\r\napplication = get_wsgi_application()\n\nFILE: vite.config.js | module_level (lines 0-10)\nimport { defineConfig } from 'vite'\r\nimport react from '@vitejs/plugin-react'\r\n\r\nexport default defineConfig({\r\n  plugins: [react()],\r\n  server: {\r\n    port: 5173,\r\n    host: true\r\n  }\r\n})\n\nFILE: urls.py | module_level (lines 0-5)\nfrom django.urls import path, include\r\n\r\nurlpatterns = [\r\n    path('api/', include('wards.urls')),\r\n]\n\nFILE: urls.py | module_level (lines 0-27)\nfrom django.urls import path\r\nfrom . import views\r\nfrom . import auth_views\r\n\r\nurlpatterns = [\r\n    # Ward data\r\n    path('wards/', views.WardListView.as_view(), name='ward-list'),\r\n    path('wards/<i\n\nFILE: settings.py | module_level (lines 0-57)\nfrom pathlib import Path\r\n\r\nBASE_DIR = Path(__file__).resolve().parent.parent\r\n\r\nSECRET_KEY = 'dev-secret-key-not-for-production'\r\nDEBUG = True\r\nALLOWED_HOSTS = ['*']\r\n\r\nINSTALLED_APPS = [\r\n    'djang\n",
+        "latency_ms": 3.7,
+        "coverage": 0.375
+      },
+      "verdict": "baseline"
+    },
+    {
+      "id": "hotspots",
+      "question": "What are the riskiest files in this codebase?",
+      "tool": "get_hotspots",
+      "ground_truth": "services.py (high churn, complex logic), wardApi.js (many functions), views.py (API surface).",
+      "cassetto": {
+        "raw": "Highest churn files:\n- src/components/DetailPanel.jsx (8 changes)\n- src/App.jsx (3 changes)\n- backend/wards/services.py (2 changes)\n- src/context/AppContext.jsx (2 changes)\n- src/utils/aqiUtils.js (1 changes)\n- backend/wards/management/commands/seed_wards.py (1 changes)\n- backend/config/settings.py (1 changes)\n- backend/wards/urls.py (1 changes)\n- backend/wards/views.py (1 changes)\n- src/api/wardApi.js (1 changes)\n- src/components/AdminDashboard.jsx (1 changes)\n- src/components/MapView.jsx (1 changes)\n- src/components/PolicyRecommendations.jsx (1 changes)\n- .gitignore (1 changes)\n- package.json (1 changes)",
+        "latency_ms": 22.3,
+        "coverage": 0.364
+      },
+      "baseline": {
+        "raw": "FILE: source_model.py | predict_sources (lines 42-169)\ndef predict_sources(pm25=None, pm10=None, no2=None, so2=None, co=None, o3=None, aqi=None):\r\n    \"\"\"\r\n    Predict pollution source contribution percentages from pollutant concentrations.\r\n    Calibrate\n\nFILE: settings.py | module_level (lines 0-57)\nfrom pathlib import Path\r\n\r\nBASE_DIR = Path(__file__).resolve().parent.parent\r\n\r\nSECRET_KEY = 'dev-secret-key-not-for-production'\r\nDEBUG = True\r\nALLOWED_HOSTS = ['*']\r\n\r\nINSTALLED_APPS = [\r\n    'djang\n\nFILE: postcss.config.js | module_level (lines 0-6)\nexport default {\r\n  plugins: {\r\n    tailwindcss: {},\r\n    autoprefixer: {},\r\n  },\r\n}\n\nFILE: ReportModal.jsx | ReportModal (lines 8-181)\nfunction ReportModal() {\r\n  const { isModalOpen, geojson } = useAppState();\r\n  const dispatch = useAppDispatch();\r\n  const modalRef = useRef(null);\r\n  const overlayRef = useRef(null);\r\n\r\n  const [cate\n\nFILE: ReportFAB.jsx | ReportFAB (lines 4-30)\nfunction ReportFAB() {\r\n  const dispatch = useAppDispatch();\r\n  const fabRef = useRef(null);\r\n\r\n  useEffect(() => {\r\n    if (!fabRef.current) return;\r\n    // Entrance animation\r\n    gsap.fromTo(fabRef\n",
+        "latency_ms": 3.1,
+        "coverage": 0.0
+      },
+      "verdict": "cassetto"
+    },
+    {
+      "id": "dead_code",
+      "question": "Is there any dead code I can safely delete?",
+      "tool": "find_dead_code",
+      "ground_truth": "Functions like _has_real_data and buildDistrictMap are never called by any other code.",
+      "cassetto": {
+        "raw": "Potential dead code (15 functions):\n- _has_real_data (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py:228)\n- generateWardAqiData (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:11)\n- buildDistrictMap (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:219)\n- fetchRecentReports (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js:57)\n- simulate_intervention (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\recommendations.py:311)\n- getAqiFillColor (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\utils\\aqiUtils.js:39)\n- getMitigations (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:152)\n- appReducer (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\context\\AppContext.jsx:41)\n- getSourceAttribution (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:84)\n- getHealthAdvisory (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:114)\n- submitReport (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js:49)\n- load_geojson (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py:626)\n- getExplainability (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:163)\n- getWardCenter (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\utils\\geoUtils.js:32)\n- generateMockReports (C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\data\\mockData.js:198)",
+        "latency_ms": 20.3,
+        "coverage": 0.5
+      },
+      "baseline": {
+        "raw": "No keyword matches found.",
+        "latency_ms": 3.7,
+        "coverage": 0.0
+      },
+      "verdict": "cassetto"
+    },
+    {
+      "id": "explain",
+      "question": "Explain the _build_ward_data function \u2014 who calls it, what does it call?",
+      "tool": "explain_symbol",
+      "ground_truth": "Defined in services.py. Called by ward_list view. Calls json.loads, math functions, model queries. PageRank > 0.",
+      "cassetto": {
+        "raw": "{\n  \"symbol\": \"_build_ward_data\",\n  \"definition\": {\n    \"definitions\": [\n      {\n        \"name\": \"_build_ward_data\",\n        \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n        \"type\": \"function_definition\",\n        \"start_line\": 233,\n        \"end_line\": 313\n      }\n    ]\n  },\n  \"called_by\": [\n    {\n      \"name\": \"get_ward_summary_list\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 316\n    },\n    {\n      \"name\": \"get_ward_detail\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 339\n    },\n    {\n      \"name\": \"get_hotspots\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 383\n    },\n    {\n      \"name\": \"get_source_map\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 411\n    }\n  ],\n  \"calls\": [\n    {\n      \"name\": \"SeededRandom\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 25\n    },\n    {\n      \"name\": \"get_aqi_tier\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 71\n    },\n    {\n      \"name\": \"get_explainability\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\services.py\",\n      \"line\": 164\n    },\n    {\n      \"name\": \"predict_sources\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\source_model.py\",\n      \"line\": 42\n    },\n    {\n      \"name\": \"_fallback_sources\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-intelligence\\\\sparrow\\\\backend\\\\wards\\\\source_model.py\",\n      \"line\": 172\n    },\n    {\n      \"name\": \"get_dominant_source\",\n      \"file\": \"C:\\\\Users\\\\shaha\\\\Documents\\\\codebase-",
+        "latency_ms": 28.0,
+        "coverage": 0.385
+      },
+      "baseline": {
+        "raw": "FILE: services.py | get_ward_summary_list (lines 316-336)\ndef get_ward_summary_list():\r\n    \"\"\"Return ward summaries for listing.\"\"\"\r\n    wards = Ward.objects.all()\r\n    result = []\r\n    for ward in wards:\r\n        reading = _get_latest_reading(ward)\r\n      \n\nFILE: services.py | get_ward_detail (lines 339-380)\ndef get_ward_detail(ward_no):\r\n    \"\"\"Return full ward detail with smart recommendations and historical comparison.\"\"\"\r\n    try:\r\n        ward = Ward.objects.get(ward_no=ward_no)\r\n    except Ward.Does\n\nFILE: services.py | get_source_map (lines 411-427)\ndef get_source_map():\r\n    \"\"\"Return per-ward source data for map layer.\"\"\"\r\n    wards = Ward.objects.all()\r\n    result = []\r\n    for ward in wards:\r\n        reading = _get_latest_reading(ward)\r\n     \n\nFILE: services.py | get_hotspots (lines 383-408)\ndef get_hotspots(count=5):\r\n    \"\"\"Return top polluted wards.\"\"\"\r\n    wards = Ward.objects.all()\r\n    ward_data = []\r\n    for ward in wards:\r\n        reading = _get_latest_reading(ward)\r\n        data \n\nFILE: services.py | _build_ward_data (lines 233-313)\ndef _build_ward_data(ward, reading=None):\r\n    \"\"\"Build ward data dict from DB ward + optional reading.\"\"\"\r\n    rng = SeededRandom((ward.ward_no * 7 + 31) & 0x7FFFFFFF)\r\n\r\n    if reading:\r\n        # \u2500\n",
+        "latency_ms": 3.0,
+        "coverage": 0.077
+      },
+      "verdict": "cassetto"
+    },
+    {
+      "id": "search",
+      "question": "Find code related to AQI color calculation",
+      "tool": "search_code",
+      "ground_truth": "aqiUtils.js contains getAqiColor, getAqiTier. WardLayer.jsx uses colors for map rendering.",
+      "cassetto": {
+        "raw": "FILE: C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\components\\LeftPanel.jsx (lines 6\u2013202)\nSYMBOL: LeftPanel (javascript)\n```\nfunction LeftPanel() {\r\n  const { wardDetail, isLeftPanelOpen, isDetailLoading, selectedWard } = useAppState();\r\n  const panelRef = useRef(null);\r\n  const contentRef = useRef(null);\r\n\r\n  // GSAP slide from left\r\n  useEffect(() => {\r\n    if (!panelRef.current) return;\r\n    if (isLeftPanelOpen && wardDetail) {\r\n      gsap.fromTo(panelRef.current,\r\n        { x: '-100%', opacity: 0 },\r\n        { x: '0%', opacity: 1, duration: 0.6, ease: 'power3.out' }\r\n      );\r\n      if (contentRef.current) {\r\n        const sections = contentRef.current.querySelectorAll('.left-section');\r\n        gsap.fromTo(sections,\r\n          { y: 25, opacity: 0 },\r\n          { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: 'power2.out', delay: 0.3 }\r\n        );\r\n      }\r\n    } else if (!isLeftPanelOpen) {\r\n      gsap.to(panelRef.current, { x: '-100%', opacity: 0, duration: 0.4, ease: 'power2.in' });\r\n    }\r\n  }, [isLeftPanelOpen, wardDetail]);\r\n\r\n  const CustomTooltip = ({ active, payload }) => {\r\n    if (!active || !payload?.length) return null;\r\n    const d = payload[0].payload;\r\n    return (\r\n      <div className=\"glass-panel-solid rounded-lg px-3 py-2 text-xs border border-white/[0.08]\">\r\n        <p className=\"text-gray-300 font-medium\">{d.label || d.month || ''}</p>\r\n        <p style={{ color: getAqiColor(d.aqi) }}>AQI: <span className=\"font-mono font-bold\">{d.aqi}</span></p>\r\n      </div>\r\n    );\r\n  };\r\n\r\n  if (!selectedWard) {\r\n    return <div ref={panelRef} className=\"fixed left-0 top-0 h-full w-[340px] z-20 -translate-x-full\" />;\r\n  }\r\n\r\n  const detail = wardDetail;\r\n  const trend24h = detail?.trend_24h || [];\r\n  const sources = detail?.sources || [];\r\n  const reports = detail?.reports || [];\r\n  const aqi = detail?.aqi || 0;\r\n\r\n  return (\r\n    <div\r\n      ref={panelRef}\r\n      className=\"fixed left-0 top-0 h-full w-[340px] z-20 glass-panel-solid ",
+        "latency_ms": 2104.0,
+        "coverage": 0.375
+      },
+      "baseline": {
+        "raw": "FILE: tailwind.config.js | module_level (lines 0-34)\n/** @type {import('tailwindcss').Config} */\r\nexport default {\r\n  content: [\r\n    \"./index.html\",\r\n    \"./src/**/*.{js,ts,jsx,tsx}\",\r\n  ],\r\n  theme: {\r\n    extend: {\r\n      colors: {\r\n        'aqi-good\n\nFILE: source_model.py | predict_sources (lines 42-169)\ndef predict_sources(pm25=None, pm10=None, no2=None, so2=None, co=None, o3=None, aqi=None):\r\n    \"\"\"\r\n    Predict pollution source contribution percentages from pollutant concentrations.\r\n    Calibrate\n\nFILE: source_model.py | _fallback_sources (lines 172-192)\ndef _fallback_sources(aqi):\r\n    \"\"\"Fallback source attribution when no pollutant data is available.\"\"\"\r\n    if aqi <= 100:\r\n        weights = {\"vehicular\": 25, \"construction\": 15, \"biomass\": 10, \"ind\n\nFILE: services.py | get_ward_summary_list (lines 316-336)\ndef get_ward_summary_list():\r\n    \"\"\"Return ward summaries for listing.\"\"\"\r\n    wards = Ward.objects.all()\r\n    result = []\r\n    for ward in wards:\r\n        reading = _get_latest_reading(ward)\r\n      \n\nFILE: services.py | get_source_map (lines 411-427)\ndef get_source_map():\r\n    \"\"\"Return per-ward source data for map layer.\"\"\"\r\n    wards = Ward.objects.all()\r\n    result = []\r\n    for ward in wards:\r\n        reading = _get_latest_reading(ward)\r\n     \n",
+        "latency_ms": 2.9,
+        "coverage": 0.125
+      },
+      "verdict": "cassetto"
+    }
+  ]
 }

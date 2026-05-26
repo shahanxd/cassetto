@@ -1,218 +1,696 @@
 <!DOCTYPE html>
-<html lang="en">
-<head>
-<meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1">
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
 <title>Cassetto Benchmark Report</title>
-<style>
-  :root { --bg: #0a0a0f; --surface: #12121a; --border: #1e1e2e; --text: #e4e4ef;
-           --muted: #8888a0; --accent: #6366f1; --green: #22c55e; --yellow: #eab308; --red: #ef4444; }
-  * { margin: 0; padding: 0; box-sizing: border-box; }
-  body { font-family: 'Inter', system-ui, sans-serif; background: var(--bg); color: var(--text);
-          line-height: 1.6; padding: 2rem; max-width: 1000px; margin: 0 auto; }
-  h1 { font-size: 2rem; margin-bottom: 0.25rem; background: linear-gradient(135deg, var(--accent), #a78bfa);
-        -webkit-background-clip: text; -webkit-text-fill-color: transparent; }
-  h2 { font-size: 1.3rem; margin: 2.5rem 0 1rem; color: var(--accent); border-bottom: 1px solid var(--border);
-        padding-bottom: 0.5rem; }
-  .subtitle { color: var(--muted); margin-bottom: 2rem; }
-  .card { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-           padding: 1.5rem; margin-bottom: 1.5rem; }
-  .kpi-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(180px, 1fr)); gap: 1rem; margin-bottom: 2rem; }
-  .kpi { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-          padding: 1.25rem; text-align: center; }
-  .kpi .value { font-size: 2rem; font-weight: 700; }
-  .kpi .label { color: var(--muted); font-size: 0.85rem; margin-top: 0.25rem; }
-  .green { color: var(--green); } .yellow { color: var(--yellow); } .red { color: var(--red); }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; color: var(--muted); font-size: 0.8rem; text-transform: uppercase;
-       letter-spacing: 0.05em; padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--border); }
-  td { padding: 0.6rem 0.75rem; border-bottom: 1px solid var(--border); font-size: 0.9rem; }
-  tr:hover { background: rgba(99, 102, 241, 0.05); }
-  .bar { height: 8px; border-radius: 4px; min-width: 4px; }
-  .winner { color: var(--green); font-weight: 600; }
-  .badge { padding: 2px 8px; border-radius: 6px; font-size: 0.75rem; font-weight: 600; }
-  .badge.fast { background: rgba(34,197,94,0.15); color: var(--green); }
-  .badge.medium { background: rgba(234,179,8,0.15); color: var(--yellow); }
-  .badge.slow { background: rgba(239,68,68,0.15); color: var(--red); }
-  .method { background: var(--surface); border: 1px solid var(--border); border-radius: 12px;
-             padding: 1.25rem; margin-top: 1rem; font-size: 0.85rem; color: var(--muted); }
-  .method h3 { color: var(--text); font-size: 0.95rem; margin-bottom: 0.5rem; }
-  code { background: rgba(99,102,241,0.1); padding: 2px 6px; border-radius: 4px; font-size: 0.85rem; }
-  @media (max-width: 600px) { .kpi-grid { grid-template-columns: 1fr 1fr; } }
-</style>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;700&display=swap" rel="stylesheet">
-</head>
-<body>
+<style>
+:root{--bg:#0a0a0f;--surface:#12121a;--border:#1e1e2e;--text:#e4e4ef;--muted:#8888a0;--accent:#6366f1;--green:#22c55e;--yellow:#eab308;--red:#ef4444}
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Inter',system-ui,sans-serif;background:var(--bg);color:var(--text);line-height:1.6;padding:2rem;max-width:1100px;margin:0 auto}
+h1{font-size:2rem;margin-bottom:.25rem;background:linear-gradient(135deg,var(--accent),#a78bfa);-webkit-background-clip:text;-webkit-text-fill-color:transparent}
+h2{font-size:1.3rem;margin:2.5rem 0 1rem;color:var(--accent);border-bottom:1px solid var(--border);padding-bottom:.5rem}
+.subtitle{color:var(--muted);margin-bottom:2rem}
+.card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.5rem;margin-bottom:1.5rem}
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:1rem;margin-bottom:2rem}
+.kpi{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;text-align:center}
+.kpi .value{font-size:2rem;font-weight:700}.kpi .label{color:var(--muted);font-size:.8rem;margin-top:.25rem}
+.green{color:var(--green)}.yellow{color:var(--yellow)}.red{color:var(--red)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;color:var(--muted);font-size:.8rem;text-transform:uppercase;letter-spacing:.05em;padding:.5rem .75rem;border-bottom:1px solid var(--border)}
+td{padding:.6rem .75rem;border-bottom:1px solid var(--border);font-size:.9rem}
+tr:hover{background:rgba(99,102,241,.05)}
+.bar{height:8px;border-radius:4px;min-width:4px}.winner{color:var(--green);font-weight:600}
+.badge{padding:2px 8px;border-radius:6px;font-size:.75rem;font-weight:600}
+.badge.fast{background:rgba(34,197,94,.15);color:var(--green)}.badge.medium{background:rgba(234,179,8,.15);color:var(--yellow)}.badge.slow{background:rgba(239,68,68,.15);color:var(--red)}
+code{background:rgba(99,102,241,.1);padding:2px 6px;border-radius:4px;font-size:.85rem}
+.comparison-card{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-bottom:1.25rem}
+.comp-header{display:flex;justify-content:space-between;align-items:center;margin-bottom:.5rem}
+.comp-question{font-weight:600;font-size:1rem}.comp-verdict{font-weight:700;font-size:.85rem;text-transform:uppercase;letter-spacing:.04em}
+.comp-gt{color:var(--muted);font-size:.8rem;margin-bottom:1rem;padding:.5rem;background:rgba(99,102,241,.05);border-radius:8px}
+.comp-grid{display:grid;grid-template-columns:1fr 1fr;gap:1rem}
+.comp-col{border:1px solid var(--border);border-radius:8px;overflow:hidden}
+.cassetto-col{border-color:rgba(34,197,94,.3)}.baseline-col{border-color:rgba(234,179,8,.3)}
+.comp-col-header{display:flex;justify-content:space-between;padding:.5rem .75rem;background:rgba(255,255,255,.03);border-bottom:1px solid var(--border);font-size:.8rem;font-weight:600}
+.comp-latency{color:var(--muted);font-weight:400}
+.coverage-row{display:flex;align-items:center;gap:.5rem;padding:.4rem .75rem}
+.coverage-bar{flex:1;height:6px;background:var(--border);border-radius:3px;overflow:hidden}
+.coverage-fill{height:100%;border-radius:3px}.coverage-label{font-size:.75rem;color:var(--muted);min-width:30px;text-align:right}
+.comp-output{padding:.75rem;font-family:'Cascadia Code','Fira Code',monospace;font-size:.7rem;color:var(--muted);white-space:pre-wrap;word-break:break-all;max-height:250px;overflow-y:auto;background:rgba(0,0,0,.2);margin:0;line-height:1.4}
+.method{background:var(--surface);border:1px solid var(--border);border-radius:12px;padding:1.25rem;margin-top:1rem;font-size:.85rem;color:var(--muted)}
+.method h3{color:var(--text);font-size:.95rem;margin-bottom:.5rem}
+@media(max-width:700px){.comp-grid{grid-template-columns:1fr}.kpi-grid{grid-template-columns:1fr 1fr}}
+</style></head><body>
 <h1>Cassetto Benchmark Report</h1>
-<p class="subtitle">Generated May 26, 2026 at 00:45 &middot; Project: Sparrow (React + Django, 52 files)</p>
-
+<p class="subtitle">Generated May 26, 2026 at 00:54 &middot; Project: Sparrow (React + Django, 52 files)</p>
 <div class="kpi-grid">
   <div class="kpi"><div class="value green">92%</div><div class="label">Avg Precision</div></div>
   <div class="kpi"><div class="value green">91%</div><div class="label">Avg Recall</div></div>
   <div class="kpi"><div class="value green">0.475</div><div class="label">MRR (Search)</div></div>
-  <div class="kpi"><div class="value green">32ms</div><div class="label">blast_radius p50</div></div>
-  <div class="kpi"><div class="value">9</div><div class="label">Tools Tested</div></div>
+  <div class="kpi"><div class="value green">26ms</div><div class="label">blast_radius p50</div></div>
+  <div class="kpi"><div class="value green">5-1</div><div class="label">Wins vs Baseline</div></div>
+  <div class="kpi"><div class="value">16</div><div class="label">Total Scenarios</div></div>
 </div>
-
 <h2>Tier 1: Tool Output Accuracy</h2>
 <p style="color:var(--muted);margin-bottom:1rem">Each tool output is compared against manually verified ground truth. No LLM involved in scoring.</p>
-<div class="card">
-<table>
-  <thead><tr><th>Tool</th><th>Query</th><th>Precision</th><th>Recall</th><th style="width:20%">Recall</th></tr></thead>
-  <tbody>
-        <tr>
-          <td><code>blast_radius</code></td>
-          <td>apiFetch</td>
-          <td style="text-align:center">56%</td>
-          <td style="text-align:center">90%</td>
-          <td><div class="bar" style="width:90%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>find_references</code></td>
-          <td>apiFetch</td>
-          <td style="text-align:center">90%</td>
-          <td style="text-align:center">100%</td>
-          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>goto_definition</code></td>
-          <td>getAqiColor</td>
-          <td style="text-align:center">100%</td>
-          <td style="text-align:center">100%</td>
-          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>get_architecture_summary</code></td>
-          <td>frameworks</td>
-          <td style="text-align:center">100%</td>
-          <td style="text-align:center">50%</td>
-          <td><div class="bar" style="width:50%;background:#eab308"></div></td>
-        </tr>
-        <tr>
-          <td><code>find_entry_points</code></td>
-          <td>all</td>
-          <td style="text-align:center">100%</td>
-          <td style="text-align:center">100%</td>
-          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>get_imports</code></td>
-          <td>services.py</td>
-          <td style="text-align:center">100%</td>
-          <td style="text-align:center">100%</td>
-          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>explain_symbol</code></td>
-          <td>_build_ward_data</td>
-          <td style="text-align:center">80%</td>
-          <td style="text-align:center">80%</td>
-          <td><div class="bar" style="width:80%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>find_dead_code</code></td>
-          <td>all</td>
-          <td style="text-align:center">100%</td>
-          <td style="text-align:center">100%</td>
-          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
-        </tr>
-        <tr>
-          <td><code>get_repo_map</code></td>
-          <td>top_20</td>
-          <td style="text-align:center">100%</td>
-          <td style="text-align:center">100%</td>
-          <td><div class="bar" style="width:100%;background:#22c55e"></div></td>
-        </tr></tbody>
-</table>
-</div>
+<div class="card"><table>
+<thead><tr><th>Tool</th><th>Query</th><th>Precision</th><th>Recall</th><th style="width:20%">Recall</th></tr></thead>
+<tbody><tr><td><code>blast_radius</code></td><td>apiFetch</td><td style="text-align:center">56%</td><td style="text-align:center">90%</td><td><div class="bar" style="width:90%;background:#22c55e"></div></td></tr>
+<tr><td><code>find_references</code></td><td>apiFetch</td><td style="text-align:center">90%</td><td style="text-align:center">100%</td><td><div class="bar" style="width:100%;background:#22c55e"></div></td></tr>
+<tr><td><code>goto_definition</code></td><td>getAqiColor</td><td style="text-align:center">100%</td><td style="text-align:center">100%</td><td><div class="bar" style="width:100%;background:#22c55e"></div></td></tr>
+<tr><td><code>get_architecture_summary</code></td><td>frameworks</td><td style="text-align:center">100%</td><td style="text-align:center">50%</td><td><div class="bar" style="width:50%;background:#eab308"></div></td></tr>
+<tr><td><code>find_entry_points</code></td><td>all</td><td style="text-align:center">100%</td><td style="text-align:center">100%</td><td><div class="bar" style="width:100%;background:#22c55e"></div></td></tr>
+<tr><td><code>get_imports</code></td><td>services.py</td><td style="text-align:center">100%</td><td style="text-align:center">100%</td><td><div class="bar" style="width:100%;background:#22c55e"></div></td></tr>
+<tr><td><code>explain_symbol</code></td><td>_build_ward_data</td><td style="text-align:center">80%</td><td style="text-align:center">80%</td><td><div class="bar" style="width:80%;background:#22c55e"></div></td></tr>
+<tr><td><code>find_dead_code</code></td><td>all</td><td style="text-align:center">100%</td><td style="text-align:center">100%</td><td><div class="bar" style="width:100%;background:#22c55e"></div></td></tr>
+<tr><td><code>get_repo_map</code></td><td>top_20</td><td style="text-align:center">100%</td><td style="text-align:center">100%</td><td><div class="bar" style="width:100%;background:#22c55e"></div></td></tr>
+</tbody></table></div>
 
 <h2>Tier 2: Retrieval Quality (IR Metrics)</h2>
 <p style="color:var(--muted);margin-bottom:1rem">Cassetto semantic search vs keyword-only baseline on 5 queries. Same indexed data, different ranking.</p>
-<div class="card">
-<table>
-  <thead><tr><th>Metric</th><th style="text-align:center">Cassetto</th><th style="text-align:center">Keyword</th><th style="text-align:center">Uplift</th></tr></thead>
-  <tbody>
-        <tr>
-          <td><strong>MRR</strong></td>
-          <td style="text-align:center" class="winner">0.475</td>
-          <td style="text-align:center" class="">0.350</td>
-          <td style="text-align:center">1.4x</td>
-        </tr>
-        <tr>
-          <td><strong>P@3</strong></td>
-          <td style="text-align:center" class="">0.267</td>
-          <td style="text-align:center" class="">0.267</td>
-          <td style="text-align:center">1.0x</td>
-        </tr>
-        <tr>
-          <td><strong>P@5</strong></td>
-          <td style="text-align:center" class="">0.240</td>
-          <td style="text-align:center" class="">0.240</td>
-          <td style="text-align:center">1.0x</td>
-        </tr>
-        <tr>
-          <td><strong>NDCG@5</strong></td>
-          <td style="text-align:center" class="winner">0.348</td>
-          <td style="text-align:center" class="">0.305</td>
-          <td style="text-align:center">1.1x</td>
-        </tr></tbody>
-</table>
-</div>
+<div class="card"><table>
+<thead><tr><th>Metric</th><th style="text-align:center">Cassetto</th><th style="text-align:center">Keyword</th><th style="text-align:center">Uplift</th></tr></thead>
+<tbody><tr><td><strong>MRR</strong></td><td style="text-align:center" class="winner">0.475</td><td style="text-align:center">0.350</td><td style="text-align:center">1.4x</td></tr>
+<tr><td><strong>P@3</strong></td><td style="text-align:center">0.267</td><td style="text-align:center">0.267</td><td style="text-align:center">1.0x</td></tr>
+<tr><td><strong>P@5</strong></td><td style="text-align:center">0.240</td><td style="text-align:center">0.240</td><td style="text-align:center">1.0x</td></tr>
+<tr><td><strong>NDCG@5</strong></td><td style="text-align:center" class="winner">0.348</td><td style="text-align:center">0.305</td><td style="text-align:center">1.1x</td></tr>
+</tbody></table></div>
 
 <h2>Tier 3: Performance</h2>
 <p style="color:var(--muted);margin-bottom:1rem">Latency benchmarks. All graph tools respond sub-100ms. Search includes embedding generation.</p>
-<div class="card">
-<table>
-  <thead><tr><th>Operation</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th>Rating</th></tr></thead>
-  <tbody>
-            <tr>
-              <td><code>search_code</code></td>
-              <td style="text-align:right">2144 ms</td>
-              <td style="text-align:right">2166 ms</td>
-              <td><span class="badge slow">slow</span></td>
-            </tr>
-            <tr>
-              <td><code>blast_radius</code></td>
-              <td style="text-align:right">32 ms</td>
-              <td style="text-align:right">34 ms</td>
-              <td><span class="badge fast">fast</span></td>
-            </tr>
-            <tr>
-              <td><code>explain_symbol</code></td>
-              <td style="text-align:right">32 ms</td>
-              <td style="text-align:right">35 ms</td>
-              <td><span class="badge fast">fast</span></td>
-            </tr>
-            <tr>
-              <td><code>get_architecture_summary</code></td>
-              <td style="text-align:right">41 ms</td>
-              <td style="text-align:right">48 ms</td>
-              <td><span class="badge fast">fast</span></td>
-            </tr>
-            <tr>
-              <td><code>find_dead_code</code></td>
-              <td style="text-align:right">25 ms</td>
-              <td style="text-align:right">26 ms</td>
-              <td><span class="badge fast">fast</span></td>
-            </tr>
-            <tr>
-              <td><code>index_throughput</code></td>
-              <td style="text-align:right">3.8s</td>
-              <td style="text-align:right">52 files</td>
-              <td><span class="badge fast">13.7 files/s</span></td>
-            </tr></tbody>
-</table>
+<div class="card"><table>
+<thead><tr><th>Operation</th><th style="text-align:right">p50</th><th style="text-align:right">p95</th><th>Rating</th></tr></thead>
+<tbody><tr><td><code>search_code</code></td><td style="text-align:right">2117 ms</td><td style="text-align:right">2136 ms</td><td><span class="badge slow">slow</span></td></tr>
+<tr><td><code>blast_radius</code></td><td style="text-align:right">26 ms</td><td style="text-align:right">27 ms</td><td><span class="badge fast">fast</span></td></tr>
+<tr><td><code>explain_symbol</code></td><td style="text-align:right">28 ms</td><td style="text-align:right">28 ms</td><td><span class="badge fast">fast</span></td></tr>
+<tr><td><code>get_architecture_summary</code></td><td style="text-align:right">34 ms</td><td style="text-align:right">38 ms</td><td><span class="badge fast">fast</span></td></tr>
+<tr><td><code>find_dead_code</code></td><td style="text-align:right">20 ms</td><td style="text-align:right">21 ms</td><td><span class="badge fast">fast</span></td></tr>
+<tr><td><code>index_throughput</code></td><td style="text-align:right">3.6s</td><td style="text-align:right">52 files</td><td><span class="badge fast">14.6 files/s</span></td></tr>
+</tbody></table></div>
+
+<h2>Tier 4: Cassetto vs Baseline &mdash; Raw Output Comparison</h2>
+<p style="color:var(--muted);margin-bottom:1rem">7 real developer questions. Left: Cassetto MCP tool output. Right: keyword-only search (what an LLM sees without MCP). Coverage = % of ground truth facts present in output.</p>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">What breaks if I change the apiFetch function?</span>
+    <span class="comp-verdict" style="color:var(--green)">CASSETTO WINS</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> 10+ functions in wardApi.js call apiFetch; changing it breaks fetchWards, fetchHotspots, submitReport, etc.</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>blast_radius</code></span><span class="comp-latency">33ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:44%;background:var(--green)"></div></div><span class="coverage-label">44%</span></div>
+      <pre class="comp-output">{
+  &quot;symbol&quot;: &quot;apiFetch&quot;,
+  &quot;blast_radius&quot;: [
+    {
+      &quot;name&quot;: &quot;fetchHotspots&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchReportMarkers&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchImpactMetrics&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchWards&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchWardDetail&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchWindData&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchSourceMap&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;fetchCityTrend&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    {
+      &quot;name&quot;: &quot;submitReport&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;depth&quot;: 1
+    },
+    </pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">3ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:33%;background:var(--yellow)"></div></div><span class="coverage-label">33%</span></div>
+      <pre class="comp-output">FILE: wardApi.js | submitReport (lines 49-54)
+async function submitReport(reportData) {
+  return apiFetch(&#x27;/reports/&#x27;, {
+    method: &#x27;POST&#x27;,
+    body: JSON.stringify(reportData),
+  });
+}
+
+FILE: wardApi.js | fetchWindData (lines 63-65)
+async function fetchWindData() {
+  return apiFetch(&#x27;/wind/&#x27;);
+}
+
+FILE: wardApi.js | fetchWards (lines 20-23)
+async function fetchWards() {
+  const data = await apiFetch(&#x27;/wards/&#x27;);
+  return data.wards;
+}
+
+FILE: wardApi.js | fetchWardDetail (lines 26-28)
+async function fetchWardDetail(wardNo) {
+  return apiFetch(`/wards/${wardNo}/`);
+}
+
+FILE: wardApi.js | fetchSourceMap (lines 43-46)
+async function fetchSourceMap() {
+  const data = await apiFetch(&#x27;/city-source-map/&#x27;);
+  return data.wards;
+}
+</pre>
+    </div>
+  </div>
 </div>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">Where is getAqiColor defined and what does it do?</span>
+    <span class="comp-verdict" style="color:var(--yellow)">TIE</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> Defined in src/utils/aqiUtils.js around line 23. Maps AQI values to CSS colors.</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>goto_definition</code></span><span class="comp-latency">23ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:14%;background:var(--green)"></div></div><span class="coverage-label">14%</span></div>
+      <pre class="comp-output">FILE: C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\utils\aqiUtils.js (lines 23–25)
+TYPE: function_declaration
+```
+
+```</pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">3ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:14%;background:var(--yellow)"></div></div><span class="coverage-label">14%</span></div>
+      <pre class="comp-output">FILE: aqiUtils.js | getAqiColor (lines 23-25)
+function getAqiColor(aqi) {
+  return getAqiTier(aqi).color;
+}
+
+FILE: WardLayer.jsx | WardLayer (lines 5-103)
+function WardLayer() {
+  const { geojson, wardList, selectedWard, hoveredWard, mapMode } = useAppState();
+  const dispatch = useAppDispatch();
+  const geoJsonRef = useRef(null);
+
+  // Build ward 
+
+FILE: SourceLayer.jsx | SourceLayer (lines 9-118)
+function SourceLayer() {
+  const { geojson, sourceMapData, wardList, selectedWard, hoveredWard, mapMode } = useAppState();
+  const dispatch = useAppDispatch();
+  const geoJsonRef = useRef(null);
+
+
+FILE: SearchBar.jsx | SearchBar (lines 5-150)
+function SearchBar() {
+  const { geojson, wardList } = useAppState();
+  const dispatch = useAppDispatch();
+  const [query, setQuery] = useState(&#x27;&#x27;);
+  const [isOpen, setIsOpen] = useState(false);
+
+FILE: PolicyRecommendations.jsx | PolicyRecommendations (lines 20-126)
+function PolicyRecommendations() {
+  const { wardList, geojson } = useAppState();
+  const dispatch = useAppDispatch();
+  const barRef = useRef(null);
+
+  // Get top 5 worst wards with their mitiga
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">What frameworks does this project use?</span>
+    <span class="comp-verdict" style="color:var(--red)">BASELINE WINS</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> React (frontend), Django (backend), Vite (bundler), Tailwind CSS (styling).</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>get_architecture_summary</code></span><span class="comp-latency">36ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:12%;background:var(--green)"></div></div><span class="coverage-label">12%</span></div>
+      <pre class="comp-output">{
+  &quot;file_count&quot;: 52,
+  &quot;languages&quot;: {
+    &quot;javascript&quot;: 34,
+    &quot;python&quot;: 18
+  },
+  &quot;frameworks&quot;: [
+    {
+      &quot;framework&quot;: &quot;django&quot;,
+      &quot;confidence&quot;: 0.6,
+      &quot;evidence&quot;: [
+        &quot;files: manage.py, wsgi.py&quot;
+      ]
+    }
+  ],
+  &quot;entry_points&quot;: [],
+  &quot;layers&quot;: {
+    &quot;other&quot;: 21,
+    &quot;config&quot;: 3,
+    &quot;data&quot;: 1,
+    &quot;controllers&quot;: 2,
+    &quot;ui&quot;: 22,
+    &quot;utils&quot;: 3
+  },
+  &quot;top_symbols&quot;: [
+    {
+      &quot;name&quot;: &quot;apiFetch&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\api\\wardApi.js&quot;,
+      &quot;type&quot;: &quot;function_declaration&quot;,
+      &quot;pagerank&quot;: 0.0605
+    },
+    {
+      &quot;name&quot;: &quot;getAqiTier&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\utils\\aqiUtils.js&quot;,
+      &quot;type&quot;: &quot;function_declaration&quot;,
+      &quot;pagerank&quot;: 0.0527
+    },
+    {
+      &quot;name&quot;: &quot;useAppState&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\context\\AppContext.jsx&quot;,
+      &quot;type&quot;: &quot;function_declaration&quot;,
+      &quot;pagerank&quot;: 0.0358
+    },
+    {
+      &quot;name&quot;: &quot;useAppDispatch&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\src\\context\\AppContext.jsx&quot;,
+      &quot;type&quot;: &quot;function_declaration&quot;,
+      &quot;pagerank&quot;: 0.0326
+    },
+    {
+      &quot;name&quot;: &quot;_get_latest_reading&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;type&quot;: &quot;function_definition&quot;,
+      &quot;pagerank&quot;: 0.0285
+    },
+    {
+      &quot;name&quot;: &quot;getCSRFToken&quot;,
+      &quot;file&quot;: &quot;C</pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">4ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:37%;background:var(--yellow)"></div></div><span class="coverage-label">37%</span></div>
+      <pre class="comp-output">FILE: wsgi.py | module_level (lines 0-4)
+import os
+from django.core.wsgi import get_wsgi_application
+os.environ.setdefault(&#x27;DJANGO_SETTINGS_MODULE&#x27;, &#x27;config.settings&#x27;)
+application = get_wsgi_application()
+
+FILE: vite.config.js | module_level (lines 0-10)
+import { defineConfig } from &#x27;vite&#x27;
+import react from &#x27;@vitejs/plugin-react&#x27;
+
+export default defineConfig({
+  plugins: [react()],
+  server: {
+    port: 5173,
+    host: true
+  }
+})
+
+FILE: urls.py | module_level (lines 0-5)
+from django.urls import path, include
+
+urlpatterns = [
+    path(&#x27;api/&#x27;, include(&#x27;wards.urls&#x27;)),
+]
+
+FILE: urls.py | module_level (lines 0-27)
+from django.urls import path
+from . import views
+from . import auth_views
+
+urlpatterns = [
+    # Ward data
+    path(&#x27;wards/&#x27;, views.WardListView.as_view(), name=&#x27;ward-list&#x27;),
+    path(&#x27;wards/&lt;i
+
+FILE: settings.py | module_level (lines 0-57)
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = &#x27;dev-secret-key-not-for-production&#x27;
+DEBUG = True
+ALLOWED_HOSTS = [&#x27;*&#x27;]
+
+INSTALLED_APPS = [
+    &#x27;djang
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">What are the riskiest files in this codebase?</span>
+    <span class="comp-verdict" style="color:var(--green)">CASSETTO WINS</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> services.py (high churn, complex logic), wardApi.js (many functions), views.py (API surface).</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>get_hotspots</code></span><span class="comp-latency">22ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:36%;background:var(--green)"></div></div><span class="coverage-label">36%</span></div>
+      <pre class="comp-output">Highest churn files:
+- src/components/DetailPanel.jsx (8 changes)
+- src/App.jsx (3 changes)
+- backend/wards/services.py (2 changes)
+- src/context/AppContext.jsx (2 changes)
+- src/utils/aqiUtils.js (1 changes)
+- backend/wards/management/commands/seed_wards.py (1 changes)
+- backend/config/settings.py (1 changes)
+- backend/wards/urls.py (1 changes)
+- backend/wards/views.py (1 changes)
+- src/api/wardApi.js (1 changes)
+- src/components/AdminDashboard.jsx (1 changes)
+- src/components/MapView.jsx (1 changes)
+- src/components/PolicyRecommendations.jsx (1 changes)
+- .gitignore (1 changes)
+- package.json (1 changes)</pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">3ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:0%;background:var(--yellow)"></div></div><span class="coverage-label">0%</span></div>
+      <pre class="comp-output">FILE: source_model.py | predict_sources (lines 42-169)
+def predict_sources(pm25=None, pm10=None, no2=None, so2=None, co=None, o3=None, aqi=None):
+    &quot;&quot;&quot;
+    Predict pollution source contribution percentages from pollutant concentrations.
+    Calibrate
+
+FILE: settings.py | module_level (lines 0-57)
+from pathlib import Path
+
+BASE_DIR = Path(__file__).resolve().parent.parent
+
+SECRET_KEY = &#x27;dev-secret-key-not-for-production&#x27;
+DEBUG = True
+ALLOWED_HOSTS = [&#x27;*&#x27;]
+
+INSTALLED_APPS = [
+    &#x27;djang
+
+FILE: postcss.config.js | module_level (lines 0-6)
+export default {
+  plugins: {
+    tailwindcss: {},
+    autoprefixer: {},
+  },
+}
+
+FILE: ReportModal.jsx | ReportModal (lines 8-181)
+function ReportModal() {
+  const { isModalOpen, geojson } = useAppState();
+  const dispatch = useAppDispatch();
+  const modalRef = useRef(null);
+  const overlayRef = useRef(null);
+
+  const [cate
+
+FILE: ReportFAB.jsx | ReportFAB (lines 4-30)
+function ReportFAB() {
+  const dispatch = useAppDispatch();
+  const fabRef = useRef(null);
+
+  useEffect(() =&gt; {
+    if (!fabRef.current) return;
+    // Entrance animation
+    gsap.fromTo(fabRef
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">Is there any dead code I can safely delete?</span>
+    <span class="comp-verdict" style="color:var(--green)">CASSETTO WINS</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> Functions like _has_real_data and buildDistrictMap are never called by any other code.</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>find_dead_code</code></span><span class="comp-latency">20ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:50%;background:var(--green)"></div></div><span class="coverage-label">50%</span></div>
+      <pre class="comp-output">Potential dead code (15 functions):
+- _has_real_data (C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\services.py:228)
+- generateWardAqiData (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:11)
+- buildDistrictMap (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:219)
+- fetchRecentReports (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\api\wardApi.js:57)
+- simulate_intervention (C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\recommendations.py:311)
+- getAqiFillColor (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\utils\aqiUtils.js:39)
+- getMitigations (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:152)
+- appReducer (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\context\AppContext.jsx:41)
+- getSourceAttribution (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:84)
+- getHealthAdvisory (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:114)
+- submitReport (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\api\wardApi.js:49)
+- load_geojson (C:\Users\shaha\Documents\codebase-intelligence\sparrow\backend\wards\services.py:626)
+- getExplainability (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\data\mockData.js:163)
+- getWardCenter (C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\utils\geoUtils.js:32)
+- generateMockReports (C:\Users\shaha</pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">4ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:0%;background:var(--yellow)"></div></div><span class="coverage-label">0%</span></div>
+      <pre class="comp-output">No keyword matches found.</pre>
+    </div>
+  </div>
+</div>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">Explain the _build_ward_data function — who calls it, what does it call?</span>
+    <span class="comp-verdict" style="color:var(--green)">CASSETTO WINS</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> Defined in services.py. Called by ward_list view. Calls json.loads, math functions, model queries. PageRank &gt; 0.</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>explain_symbol</code></span><span class="comp-latency">28ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:38%;background:var(--green)"></div></div><span class="coverage-label">38%</span></div>
+      <pre class="comp-output">{
+  &quot;symbol&quot;: &quot;_build_ward_data&quot;,
+  &quot;definition&quot;: {
+    &quot;definitions&quot;: [
+      {
+        &quot;name&quot;: &quot;_build_ward_data&quot;,
+        &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+        &quot;type&quot;: &quot;function_definition&quot;,
+        &quot;start_line&quot;: 233,
+        &quot;end_line&quot;: 313
+      }
+    ]
+  },
+  &quot;called_by&quot;: [
+    {
+      &quot;name&quot;: &quot;get_ward_summary_list&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;line&quot;: 316
+    },
+    {
+      &quot;name&quot;: &quot;get_ward_detail&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;line&quot;: 339
+    },
+    {
+      &quot;name&quot;: &quot;get_hotspots&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;line&quot;: 383
+    },
+    {
+      &quot;name&quot;: &quot;get_source_map&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;line&quot;: 411
+    }
+  ],
+  &quot;calls&quot;: [
+    {
+      &quot;name&quot;: &quot;SeededRandom&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;line&quot;: 25
+    },
+    {
+      &quot;name&quot;: &quot;get_aqi_tier&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\backend\\wards\\services.py&quot;,
+      &quot;line&quot;: 71
+    },
+    {
+      &quot;name&quot;: &quot;get_explainability&quot;,
+      &quot;file&quot;: &quot;C:\\Users\\shaha\\Documents\\codebase-intelligence\\sparrow\\</pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">3ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:7%;background:var(--yellow)"></div></div><span class="coverage-label">7%</span></div>
+      <pre class="comp-output">FILE: services.py | get_ward_summary_list (lines 316-336)
+def get_ward_summary_list():
+    &quot;&quot;&quot;Return ward summaries for listing.&quot;&quot;&quot;
+    wards = Ward.objects.all()
+    result = []
+    for ward in wards:
+        reading = _get_latest_reading(ward)
+      
+
+FILE: services.py | get_ward_detail (lines 339-380)
+def get_ward_detail(ward_no):
+    &quot;&quot;&quot;Return full ward detail with smart recommendations and historical comparison.&quot;&quot;&quot;
+    try:
+        ward = Ward.objects.get(ward_no=ward_no)
+    except Ward.Does
+
+FILE: services.py | get_source_map (lines 411-427)
+def get_source_map():
+    &quot;&quot;&quot;Return per-ward source data for map layer.&quot;&quot;&quot;
+    wards = Ward.objects.all()
+    result = []
+    for ward in wards:
+        reading = _get_latest_reading(ward)
+     
+
+FILE: services.py | get_hotspots (lines 383-408)
+def get_hotspots(count=5):
+    &quot;&quot;&quot;Return top polluted wards.&quot;&quot;&quot;
+    wards = Ward.objects.all()
+    ward_data = []
+    for ward in wards:
+        reading = _get_latest_reading(ward)
+        data 
+
+FILE: services.py | _build_ward_data (lines 233-313)
+def _build_ward_data(ward, reading=None):
+    &quot;&quot;&quot;Build ward data dict from DB ward + optional reading.&quot;&quot;&quot;
+    rng = SeededRandom((ward.ward_no * 7 + 31) &amp; 0x7FFFFFFF)
+
+    if reading:
+        # ─
+</pre>
+    </div>
+  </div>
+</div>
+
+<div class="comparison-card">
+  <div class="comp-header">
+    <span class="comp-question">Find code related to AQI color calculation</span>
+    <span class="comp-verdict" style="color:var(--green)">CASSETTO WINS</span>
+  </div>
+  <div class="comp-gt"><strong>Ground truth:</strong> aqiUtils.js contains getAqiColor, getAqiTier. WardLayer.jsx uses colors for map rendering.</div>
+  <div class="comp-grid">
+    <div class="comp-col cassetto-col">
+      <div class="comp-col-header"><span>Cassetto <code>search_code</code></span><span class="comp-latency">2104ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:37%;background:var(--green)"></div></div><span class="coverage-label">37%</span></div>
+      <pre class="comp-output">FILE: C:\Users\shaha\Documents\codebase-intelligence\sparrow\src\components\LeftPanel.jsx (lines 6–202)
+SYMBOL: LeftPanel (javascript)
+```
+function LeftPanel() {
+  const { wardDetail, isLeftPanelOpen, isDetailLoading, selectedWard } = useAppState();
+  const panelRef = useRef(null);
+  const contentRef = useRef(null);
+
+  // GSAP slide from left
+  useEffect(() =&gt; {
+    if (!panelRef.current) return;
+    if (isLeftPanelOpen &amp;&amp; wardDetail) {
+      gsap.fromTo(panelRef.current,
+        { x: &#x27;-100%&#x27;, opacity: 0 },
+        { x: &#x27;0%&#x27;, opacity: 1, duration: 0.6, ease: &#x27;power3.out&#x27; }
+      );
+      if (contentRef.current) {
+        const sections = contentRef.current.querySelectorAll(&#x27;.left-section&#x27;);
+        gsap.fromTo(sections,
+          { y: 25, opacity: 0 },
+          { y: 0, opacity: 1, duration: 0.5, stagger: 0.08, ease: &#x27;power2.out&#x27;, delay: 0.3 }
+        );
+      }
+    } else if (!isLeftPanelOpen) {
+      gsap.to(panelRef.current, { x: &#x27;-100%&#x27;, opacity: 0, duration: 0.4, ease: &#x27;power2.in&#x27; });
+    }
+  }, [isLeftPanelOpen, wardDetail]);
+
+  const CustomTooltip = ({ active, payload }) =&gt; {
+    if (!active || !payload?.length) return null;
+    const d = payload[0].payload;
+    return (
+      &lt;div className=&quot;glass-panel-solid rounded-lg px-3 py-2 text-xs border border-white/[0.08]&quot;&gt;
+        &lt;p className=&quot;text-gray-300 font-medium&quot;&gt;{d.label || d.month || &#x27;&#x27;}&lt;/p&gt;
+        &lt;p style={{ color: getAqiColor(d.aqi) }}&gt;AQI: &lt;span className=&quot;font-mono font-bold&quot;&gt;{d</pre>
+    </div>
+    <div class="comp-col baseline-col">
+      <div class="comp-col-header"><span>Keyword baseline</span><span class="comp-latency">3ms</span></div>
+      <div class="coverage-row"><div class="coverage-bar"><div class="coverage-fill" style="width:12%;background:var(--yellow)"></div></div><span class="coverage-label">12%</span></div>
+      <pre class="comp-output">FILE: tailwind.config.js | module_level (lines 0-34)
+/** @type {import(&#x27;tailwindcss&#x27;).Config} */
+export default {
+  content: [
+    &quot;./index.html&quot;,
+    &quot;./src/**/*.{js,ts,jsx,tsx}&quot;,
+  ],
+  theme: {
+    extend: {
+      colors: {
+        &#x27;aqi-good
+
+FILE: source_model.py | predict_sources (lines 42-169)
+def predict_sources(pm25=None, pm10=None, no2=None, so2=None, co=None, o3=None, aqi=None):
+    &quot;&quot;&quot;
+    Predict pollution source contribution percentages from pollutant concentrations.
+    Calibrate
+
+FILE: source_model.py | _fallback_sources (lines 172-192)
+def _fallback_sources(aqi):
+    &quot;&quot;&quot;Fallback source attribution when no pollutant data is available.&quot;&quot;&quot;
+    if aqi &lt;= 100:
+        weights = {&quot;vehicular&quot;: 25, &quot;construction&quot;: 15, &quot;biomass&quot;: 10, &quot;ind
+
+FILE: services.py | get_ward_summary_list (lines 316-336)
+def get_ward_summary_list():
+    &quot;&quot;&quot;Return ward summaries for listing.&quot;&quot;&quot;
+    wards = Ward.objects.all()
+    result = []
+    for ward in wards:
+        reading = _get_latest_reading(ward)
+      
+
+FILE: services.py | get_source_map (lines 411-427)
+def get_source_map():
+    &quot;&quot;&quot;Return per-ward source data for map layer.&quot;&quot;&quot;
+    wards = Ward.objects.all()
+    result = []
+    for ward in wards:
+        reading = _get_latest_reading(ward)
+     
+</pre>
+    </div>
+  </div>
+</div>
+
 
 <div class="method">
-  <h3>Methodology</h3>
-  <p><strong>Tier 1:</strong> Ground truth was manually constructed by inspecting the Sparrow codebase (React + Django AQI dashboard, 52 files).
-  Each tool's output is parsed and compared against known-correct facts using set-based precision and recall. Zero LLM involvement in scoring.</p>
-  <p style="margin-top:0.5rem"><strong>Tier 2:</strong> Five semantic search queries with manually labeled relevant files.
-  Cassetto uses hybrid BM25 + embedding search with graph-aware reranking. Baseline uses keyword matching on the same indexed chunks.
-  Metrics: MRR (Mean Reciprocal Rank), Precision@K, nDCG@5.</p>
-  <p style="margin-top:0.5rem"><strong>Tier 3:</strong> Latency measured with <code>time.perf_counter()</code>, 5 runs per operation.
-  p50 = median, p95 = worst-case. Index throughput includes parsing, embedding, graph construction, and git analysis.</p>
+<h3>Methodology</h3>
+<p><strong>Tier 1:</strong> Ground truth manually constructed by inspecting the Sparrow codebase. Tool outputs parsed and compared using set-based precision and recall. Zero LLM involvement.</p>
+<p style="margin-top:.5rem"><strong>Tier 2:</strong> Five semantic search queries with manually labeled relevant files. Cassetto uses hybrid BM25 + embedding search with graph-aware reranking. Baseline uses keyword matching on the same indexed chunks.</p>
+<p style="margin-top:.5rem"><strong>Tier 3:</strong> Latency measured with <code>time.perf_counter()</code>, 5 runs per operation. p50 = median, p95 = worst-case.</p>
+<p style="margin-top:.5rem"><strong>Tier 4:</strong> Seven developer questions answered by Cassetto (structured MCP tool) vs keyword-only baseline. Coverage = fraction of ground-truth fact-words found in raw output. Scoring is deterministic word-overlap, no LLM judge.</p>
 </div>
-
 </body></html>
