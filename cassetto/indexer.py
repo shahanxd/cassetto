@@ -26,7 +26,8 @@ def index_directory(directory: str, project_id: str, force: bool = False):
                              upsert_relationship, delete_file_symbols,
                              delete_file_imports, upsert_import,
                              resolve_symbol_name, update_pagerank_scores,
-                             store_git_churn, store_git_coupling)
+                             store_git_churn, store_git_coupling,
+                             GraphDatabaseLockedError)
     from .graph_extractor import extract_relationships
     from .import_extractor import extract_imports, resolve_import_to_file
 
@@ -56,7 +57,11 @@ def index_directory(directory: str, project_id: str, force: bool = False):
     skipped = 0
     start_time = time.time()
 
-    graph_conn = get_graph_conn(project_id)
+    try:
+        graph_conn = get_graph_conn(project_id)
+    except GraphDatabaseLockedError as e:
+        print(f"ERROR: {e}")
+        sys.exit(1)
 
     # we collect relationships first, then resolve them all at the end.
     pending_rels = []

@@ -5,10 +5,12 @@ Tests the persistence layer: symbol storage, relationships, queries.
 import os
 import shutil
 import pytest
+from cassetto import graph_store
 from cassetto.graph_store import (
     get_conn, upsert_symbol, upsert_relationship, delete_file_symbols,
     update_pagerank_scores, get_dead_code, get_call_graph,
     resolve_symbol_name, upsert_import, get_blast_radius,
+    GraphDatabaseLockedError,
 )
 from cassetto.ast_chunker import Chunk
 from cassetto.import_extractor import ImportRelationship
@@ -34,6 +36,26 @@ def db():
 
 
 class TestSymbolCRUD:
+    def test_get_conn_reports_locked_database_actionably(self, monkeypatch):
+        pid = f"_locked_{os.getpid()}"
+
+        def raise_lock_error(_db_path):
+            raise graph_store.duckdb.IOException("IO Error: Could not set lock on file")
+
+        monkeypatch.setattr(graph_store.duckdb, "connect", raise_lock_error)
+
+        with pytest.raises(GraphDatabaseLockedError) as exc:
+            get_conn(pid)
+
+        message = str(exc.value)
+        assert "graph database is locked by another process" in message
+        assert "Stop the MCP server and retry" in message
+        assert "cassetto watch" in message
+
+        db_dir = DATA_DIR / pid
+        if db_dir.exists():
+            shutil.rmtree(db_dir, ignore_errors=True)
+
     def test_upsert_symbol(self, db):
         conn, pid = db
         c = _make_chunk("id1", "foo", "/test/file.py")
