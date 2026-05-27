@@ -19,10 +19,33 @@ from pathlib import Path
 from .config import DATA_DIR
 
 
+LOCKED_GRAPH_DB_MESSAGE = """The graph database is locked by another process.
+
+This usually means the MCP server is running. Either:
+  1. Stop the MCP server and retry, or
+  2. Use 'cassetto watch' for live re-indexing while the server runs"""
+
+
+class GraphDatabaseLockedError(RuntimeError):
+    """Raised when DuckDB cannot open the graph database because it is locked."""
+
+
+def _is_duckdb_lock_error(error: Exception) -> bool:
+    message = str(error).lower()
+    return "could not set lock on file" in message or "conflicting lock" in message
+
+
 def get_conn(project_id: str) -> duckdb.DuckDBPyConnection:
     db_path = str(DATA_DIR / project_id / "graph.duckdb")
     Path(db_path).parent.mkdir(parents=True, exist_ok=True)
-    conn = duckdb.connect(db_path)
+
+    try:
+        conn = duckdb.connect(db_path)
+    except duckdb.IOException as error:
+        if _is_duckdb_lock_error(error):
+            raise GraphDatabaseLockedError(LOCKED_GRAPH_DB_MESSAGE) from error
+        raise
+
     _setup(conn)
     return conn
 
