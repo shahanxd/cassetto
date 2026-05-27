@@ -67,7 +67,7 @@ class TestChunkFile:
 
     def test_chunk_has_required_fields(self, tmp_path):
         f = tmp_path / "sample.py"
-        f.write_text("def foo():\n    pass\n")
+        f.write_text("def foo():\n    x = 1\n    y = 2\n    return x + y\n")
         chunks = chunk_file(str(f))
         assert len(chunks) >= 1
         c = chunks[0]

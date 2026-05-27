@@ -10,14 +10,13 @@ import subprocess
 import pytest
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-SERVER_PY = os.path.join(ROOT, "server.py")
 
 
 def _send_mcp(*messages):
     """Send JSON-RPC messages to the MCP server via stdio and return responses."""
     input_text = "\n".join(json.dumps(m) for m in messages) + "\n"
     result = subprocess.run(
-        [sys.executable, SERVER_PY],
+        [sys.executable, "-m", "cassetto.server"],
         input=input_text,
         capture_output=True, text=True, timeout=30,
         env={**os.environ, "CASSETTO_PROJECT_ID": "sparrow"},
