@@ -30,6 +30,7 @@ EXTENSION_MAP = {
     '.c': 'c',
     '.h': 'c',
     '.hpp': 'cpp',
+    '.vue': 'vue',
 }
 
 # AST node types worth extracting as standalone chunks, per language
@@ -72,6 +73,9 @@ SYMBOL_TYPES = {
     },
     'c': {
         'function_definition', 'struct_specifier',
+    },
+    'vue': {
+        'template_element', 'script_element', 'style_element',
     },
 }
 
@@ -206,6 +210,10 @@ def _symbol_name(node, source_bytes: bytes) -> str | None:
         if child.kind() in _NAME_KINDS:
             return source_bytes[child.start_byte():child.end_byte()].decode(
                 'utf-8', errors='ignore')
+
+    # Vue SFC blocks are represented as elements with a start tag.
+    if node.kind() in ('template_element', 'script_element', 'style_element'):
+        return node.kind().removesuffix('_element')
 
     # python decorated definitions (@decorator above a def/class) — dig
     # one level deeper to find the actual function name
