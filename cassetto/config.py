@@ -30,7 +30,7 @@ SKIP_DIRS = {
 SUPPORTED_EXTENSIONS = {
     '.py', '.js', '.ts', '.tsx', '.jsx',
     '.go', '.rs', '.java', '.rb', '.php',
-    '.cs', '.cpp', '.c', '.h', '.hpp',
+    '.kt', '.kts', '.cs', '.cpp', '.c', '.h', '.hpp',
 }
 
 MAX_CHUNK_SIZE = 6000   # truncate huge functions beyond this

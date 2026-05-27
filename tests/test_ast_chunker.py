@@ -6,6 +6,7 @@ import os
 import tempfile
 from pathlib import Path
 from cassetto.ast_chunker import chunk_file, EXTENSION_MAP, Chunk
+from cassetto.config import SUPPORTED_EXTENSIONS
 
 
 class TestExtensionMap:
@@ -19,6 +20,12 @@ class TestExtensionMap:
     def test_typescript_supported(self):
         assert '.ts' in EXTENSION_MAP
         assert '.tsx' in EXTENSION_MAP
+
+    def test_kotlin_supported(self):
+        assert '.kt' in EXTENSION_MAP
+        assert '.kts' in EXTENSION_MAP
+        assert '.kt' in SUPPORTED_EXTENSIONS
+        assert '.kts' in SUPPORTED_EXTENSIONS
 
     def test_unsupported_returns_none(self):
         assert '.txt' not in EXTENSION_MAP
@@ -52,6 +59,25 @@ class TestChunkFile:
         f.write_text("function MyComponent() {\n  return <div>Hello</div>;\n}\n")
         chunks = chunk_file(str(f))
         assert any(c.symbol == "MyComponent" for c in chunks)
+
+    def test_kotlin_function_class_and_object(self, tmp_path):
+        f = tmp_path / "Sample.kt"
+        f.write_text(
+            "fun greet(name: String): String {\n"
+            "    return \"Hello, $name\"\n"
+            "}\n\n"
+            "class User(val name: String)\n\n"
+            "object Registry {\n"
+            "    fun all(): List<User> = emptyList()\n"
+            "}\n"
+        )
+        chunks = chunk_file(str(f))
+        symbols = {c.symbol for c in chunks}
+
+        assert "greet" in symbols
+        assert "User" in symbols
+        assert "Registry" in symbols
+        assert {c.language for c in chunks} == {"kotlin"}
 
     def test_empty_file(self, tmp_path):
         f = tmp_path / "empty.py"
