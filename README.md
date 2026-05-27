@@ -166,6 +166,7 @@ Everything runs locally. No cloud, no API keys required.
 ```bash
 cassetto index [dir]           # Index a project (default: current dir)
 cassetto index . --force       # Force full re-index
+cassetto doctor                # Check embedding, index, graph, and MCP setup
 cassetto setup                 # Auto-configure MCP for your AI assistant
 cassetto setup -p myproject    # Configure with specific project ID
 cassetto serve                 # Start MCP server manually
