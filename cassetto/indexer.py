@@ -16,7 +16,23 @@ sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 from .config import SKIP_DIRS, SUPPORTED_EXTENSIONS, GIT_ENABLED
 
 
-def index_directory(directory: str, project_id: str, force: bool = False):
+def _format_ms(seconds: float) -> str:
+    return f"{seconds * 1000:.0f}ms"
+
+
+def _relative_display(path: str, root: Path) -> str:
+    try:
+        return str(Path(path).resolve().relative_to(root))
+    except ValueError:
+        return path
+
+
+def index_directory(
+    directory: str,
+    project_id: str,
+    force: bool = False,
+    verbose: bool = False,
+):
     """Full index of a directory: parse, embed, store, build graph."""
     from .ast_chunker import chunk_file
     from .embedder import embed_batch, check_embedding_ready
@@ -55,6 +71,12 @@ def index_directory(directory: str, project_id: str, force: bool = False):
     errors = 0
     skipped = 0
     start_time = time.time()
+    phase_times = {
+        "parsing": 0.0,
+        "embedding": 0.0,
+        "graph": 0.0,
+        "git": 0.0,
+    }
 
     graph_conn = get_graph_conn(project_id)
 
@@ -72,13 +94,25 @@ def index_directory(directory: str, project_id: str, force: bool = False):
                 stored = get_file_metadata(project_id, file_path)
                 if stored and stored['file_hash'] == current_hash:
                     skipped += 1
+                    if verbose:
+                        rel_path = _relative_display(file_path, root)
+                        print(f"[{i + 1}/{len(all_files)}] Skipping {rel_path} (unchanged)")
                     continue
             except Exception:
                 pass
 
         print(f"[{i + 1}/{len(all_files)}] {file_path}")
         try:
+            parse_start = time.perf_counter()
             chunks = chunk_file(file_path)
+            parse_elapsed = time.perf_counter() - parse_start
+            phase_times["parsing"] += parse_elapsed
+            if verbose:
+                rel_path = _relative_display(file_path, root)
+                print(
+                    f"  Parsing {rel_path} -> {len(chunks)} chunks "
+                    f"({_format_ms(parse_elapsed)})"
+                )
             if not chunks:
                 continue
 
@@ -87,11 +121,20 @@ def index_directory(directory: str, project_id: str, force: bool = False):
                 f"File: {c.file}\nSymbol: {c.symbol} ({c.symbol_type})\n\n{c.chunk}"
                 for c in chunks
             ]
+            embed_start = time.perf_counter()
             embeddings = embed_batch(texts)
+            embed_elapsed = time.perf_counter() - embed_start
+            phase_times["embedding"] += embed_elapsed
+            if verbose:
+                print(
+                    f"  Embedding {len(chunks)} chunks... "
+                    f"({_format_ms(embed_elapsed)})"
+                )
             delete_file_chunks(project_id, file_path)
             store_chunks(project_id, chunks, embeddings)
             total_chunks += len(chunks)
 
+            graph_start = time.perf_counter()
             # build graph nodes
             delete_file_symbols(graph_conn, file_path)
             for chunk in chunks:
@@ -108,6 +151,12 @@ def index_directory(directory: str, project_id: str, force: bool = False):
                 upsert_import(graph_conn, imp)
             pending_imports.extend(imports)
             total_imports += len(imports)
+            graph_elapsed = time.perf_counter() - graph_start
+            phase_times["graph"] += graph_elapsed
+            if verbose:
+                print(f"  Extracted {len(rels)} relationships")
+                print(f"  Extracted {len(imports)} imports")
+                print(f"  Graph phase {_format_ms(graph_elapsed)}")
 
             # track file metadata for staleness detection
             file_content = Path(file_path).read_bytes()
@@ -163,6 +212,7 @@ def index_directory(directory: str, project_id: str, force: bool = False):
         from .git_intel import is_git_repo, get_file_churn, get_change_coupling
         if is_git_repo(str(root)):
             print("Analyzing git history...")
+            git_start = time.perf_counter()
             churn = get_file_churn(str(root))
             store_git_churn(graph_conn, churn)
             print(f"  -> {len(churn)} files with churn data")
@@ -170,12 +220,19 @@ def index_directory(directory: str, project_id: str, force: bool = False):
             coupling = get_change_coupling(str(root))
             store_git_coupling(graph_conn, coupling)
             print(f"  -> {len(coupling)} file pairs with change coupling")
+            phase_times["git"] += time.perf_counter() - git_start
         else:
             print("(not a git repo, skipping git analysis)")
 
     graph_conn.close()
 
     elapsed = time.time() - start_time
+    if verbose:
+        print("\nPhase timings:")
+        print(f"  parsing: {_format_ms(phase_times['parsing'])}")
+        print(f"  embedding: {_format_ms(phase_times['embedding'])}")
+        print(f"  graph: {_format_ms(phase_times['graph'])}")
+        print(f"  git: {_format_ms(phase_times['git'])}")
     print(f"\nDone. {total_chunks} chunks, {total_rels} edges, "
           f"{total_imports} imports, {errors} errors, {elapsed:.1f}s")
 
@@ -299,6 +356,8 @@ def main():
                      help='Project ID (default: folder name)')
     idx.add_argument('--force', action='store_true',
                      help='Force re-index all files (skip incremental check)')
+    idx.add_argument('--verbose', '-v', action='store_true',
+                     help='Print detailed indexing progress and phase timings')
 
     # search
     srch = subparsers.add_parser('search', help='Search the indexed codebase')
@@ -328,7 +387,8 @@ def main():
         pid = args.project or _default_project_id(args.directory)
         print(f"Indexing into project: {pid}")
         index_directory(args.directory, pid,
-                        force=getattr(args, 'force', False))
+                        force=getattr(args, 'force', False),
+                        verbose=getattr(args, 'verbose', False))
         print(f"\nDone. Run 'cassetto setup' to connect to your AI assistant.")
 
     elif args.command == 'search':
