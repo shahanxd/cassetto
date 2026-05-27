@@ -5,7 +5,7 @@ Parses source files into their actual structure (functions, classes, methods)
 instead of guessing with regex. Each chunk = one real symbol with exact
 line boundaries.
 
-Supports 12 languages via tree-sitter-language-pack.
+Supports 13 languages via tree-sitter-language-pack.
 Built for tree-sitter 0.25.x where most node accessors are methods, not properties.
 """
 import hashlib
@@ -23,6 +23,8 @@ EXTENSION_MAP = {
     '.go': 'go',
     '.rs': 'rust',
     '.java': 'java',
+    '.kt': 'kotlin',
+    '.kts': 'kotlin',
     '.rb': 'ruby',
     '.php': 'php',
     '.cs': 'c_sharp',
@@ -58,6 +60,10 @@ SYMBOL_TYPES = {
     'java': {
         'method_declaration', 'class_declaration', 'interface_declaration',
     },
+    'kotlin': {
+        'function_declaration', 'class_declaration',
+        'object_declaration', 'companion_object',
+    },
     'ruby': {
         'method', 'class', 'module',
     },
@@ -76,7 +82,7 @@ SYMBOL_TYPES = {
 }
 
 # node types that hold a symbol's name
-_NAME_KINDS = {'identifier', 'property_identifier', 'name',
+_NAME_KINDS = {'identifier', 'property_identifier', 'name', 'simple_identifier',
                'field_identifier', 'type_identifier'}
 
 
