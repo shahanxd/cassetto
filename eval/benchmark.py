@@ -16,11 +16,11 @@ sys.path.insert(0, ROOT)
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 os.environ['CASSETTO_PROJECT_ID'] = 'sparrow'
 
-from server import (search_code, blast_radius, find_references, goto_definition,
+from cassetto.server import (search_code, blast_radius, find_references, goto_definition,
                     find_dead_code, get_repo_map, get_architecture_summary,
                     find_entry_points, get_imports, explain_symbol, get_hotspots,
                     find_cycles, get_index_status)
-from store import get_indexed_files
+from cassetto.store import get_indexed_files
 
 SPARROW = os.path.join(ROOT, "sparrow")
 
@@ -177,7 +177,7 @@ SEARCH_QUERIES = [
 
 def _grep_search(query: str, directory: str, limit: int = 10) -> list:
     """Baseline: keyword search on indexed chunk content (no embeddings, no graph)."""
-    from store import get_sqlite_conn
+    from cassetto.store import get_sqlite_conn
     words = query.lower().split()
     conn = get_sqlite_conn("sparrow")
     try:
@@ -411,7 +411,7 @@ COMPARISON_SCENARIOS = [
 
 def _baseline_keyword_search(query: str) -> str:
     """Simulate what an LLM sees without MCP: keyword matches from indexed chunks."""
-    from store import get_sqlite_conn
+    from cassetto.store import get_sqlite_conn
     words = query.lower().split()
     conn = get_sqlite_conn("sparrow")
     try:
@@ -441,7 +441,7 @@ def _baseline_keyword_search(query: str) -> str:
 
 def tier4_sidebyside():
     """Run each scenario through both Cassetto and baseline, capture raw outputs."""
-    from server import (blast_radius, goto_definition, get_architecture_summary,
+    from cassetto.server import (blast_radius, goto_definition, get_architecture_summary,
                         get_hotspots, find_dead_code, explain_symbol, search_code)
 
     tool_map = {

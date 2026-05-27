@@ -167,7 +167,7 @@ _ENTRY_PATTERNS['tsx'] = _ENTRY_PATTERNS['typescript']
 def find_entry_points(project_root: str,
                        indexed_files: list[str]) -> list[dict]:
     """Detect all entry points: routes, CLI commands, main functions, tests."""
-    from ast_chunker import EXTENSION_MAP
+    from .ast_chunker import EXTENSION_MAP
 
     entries = []
     for f in indexed_files:
@@ -273,7 +273,7 @@ def generate_architecture_summary(project_root: str,
     Combine all intelligence into a structured codebase overview.
     """
     from collections import Counter
-    from ast_chunker import EXTENSION_MAP
+    from .ast_chunker import EXTENSION_MAP
 
     # language breakdown
     lang_counts: Counter = Counter()

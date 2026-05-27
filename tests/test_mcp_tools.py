@@ -14,7 +14,7 @@ if ROOT not in sys.path:
 
 os.environ["CASSETTO_PROJECT_ID"] = "sparrow"
 
-from server import (
+from cassetto.server import (
     search_code, get_call_graph_tool, blast_radius, find_dead_code,
     get_repo_map, find_references, goto_definition, explain_symbol,
     get_hotspots, get_architecture_summary, find_entry_points,
@@ -25,7 +25,7 @@ from server import (
 
 def _has_index():
     """Check if sparrow is actually indexed."""
-    from config import DATA_DIR
+    from cassetto.config import DATA_DIR
     return (DATA_DIR / "sparrow" / "graph.duckdb").exists()
 
 
@@ -181,7 +181,7 @@ class TestFindEntryPoints:
 
 class TestGetImports:
     def test_services_imports(self):
-        from store import get_indexed_files
+        from cassetto.store import get_indexed_files
         files = get_indexed_files("sparrow")
         svc = [f for f in files if "services.py" in f and "migration" not in f]
         if not svc:

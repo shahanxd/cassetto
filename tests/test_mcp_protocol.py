@@ -85,14 +85,14 @@ class TestToolDiscovery:
         """Import server and verify all tools are in the MCP registry."""
         os.environ["CASSETTO_PROJECT_ID"] = "sparrow"
         sys.path.insert(0, ROOT)
-        from server import mcp
+        from cassetto.server import mcp
         tools = mcp._tool_manager._tools
         assert len(tools) == 18
 
     def test_expected_tools_present(self):
         os.environ["CASSETTO_PROJECT_ID"] = "sparrow"
         sys.path.insert(0, ROOT)
-        from server import mcp
+        from cassetto.server import mcp
         tool_names = set(mcp._tool_manager._tools.keys())
         expected = {
             "search_code", "get_call_graph_tool", "blast_radius",
@@ -108,7 +108,7 @@ class TestToolDiscovery:
     def test_all_tools_have_descriptions(self):
         os.environ["CASSETTO_PROJECT_ID"] = "sparrow"
         sys.path.insert(0, ROOT)
-        from server import mcp
+        from cassetto.server import mcp
         for name, tool in mcp._tool_manager._tools.items():
             desc = tool.description if hasattr(tool, 'description') else ""
             assert len(str(desc)) > 10, f"Tool {name} has no description"

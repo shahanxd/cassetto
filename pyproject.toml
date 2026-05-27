@@ -33,9 +33,7 @@ Homepage = "https://github.com/shahanxd/cassetto"
 Repository = "https://github.com/shahanxd/cassetto"
 
 [project.scripts]
-cassetto = "indexer:main"
+cassetto = "cassetto.indexer:main"
 
 [tool.setuptools]
-py-modules = ["indexer", "server", "config", "embedder", "store", "graph_store",
-              "graph_extractor", "ast_chunker", "import_extractor", "git_intel",
-              "architecture", "watcher"]
+packages = ["cassetto"]

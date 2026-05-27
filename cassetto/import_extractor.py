@@ -8,7 +8,7 @@ circular dependency detection.
 """
 from dataclasses import dataclass, field
 from pathlib import Path
-from ast_chunker import EXTENSION_MAP
+from .ast_chunker import EXTENSION_MAP
 
 
 @dataclass

@@ -11,7 +11,7 @@ Built for tree-sitter 0.25.x where most node accessors are methods, not properti
 import hashlib
 from pathlib import Path
 from dataclasses import dataclass
-from config import MAX_CHUNK_SIZE, MIN_CHUNK_SIZE
+from .config import MAX_CHUNK_SIZE, MIN_CHUNK_SIZE
 
 # which file extension maps to which tree-sitter grammar
 EXTENSION_MAP = {

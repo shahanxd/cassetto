@@ -5,7 +5,7 @@ Default backend is Ollama running locally (nomic-embed-text model).
 Optional Voyage AI backend for better quality at the cost of API calls.
 """
 import requests
-from config import EMBEDDING_BACKEND, OLLAMA_URL, OLLAMA_MODEL
+from .config import EMBEDDING_BACKEND, OLLAMA_URL, OLLAMA_MODEL
 
 
 def embed_text(text: str) -> list[float]:
@@ -32,7 +32,7 @@ def embed_batch(texts: list[str]) -> list[list[float]]:
 def check_embedding_ready() -> tuple[bool, str]:
     """Quick health check — is the embedding backend reachable?"""
     if EMBEDDING_BACKEND == "voyage":
-        from config import VOYAGE_API_KEY
+        from .config import VOYAGE_API_KEY
         if not VOYAGE_API_KEY:
             return False, "VOYAGE_API_KEY env var not set"
         return True, "Voyage AI ready"
@@ -67,7 +67,7 @@ def _embed_ollama(text: str) -> list[float]:
 
 def _embed_voyage_batch(texts: list[str]) -> list[list[float]]:
     """Batch embedding via Voyage AI API."""
-    from config import VOYAGE_API_KEY, VOYAGE_MODEL
+    from .config import VOYAGE_API_KEY, VOYAGE_MODEL
     try:
         import voyageai
     except ImportError:

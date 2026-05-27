@@ -3,7 +3,7 @@ Unit tests — Graph extractor.
 Tests call graph, inheritance, and JSX render extraction.
 """
 import os
-from graph_extractor import extract_relationships, Relationship
+from cassetto.graph_extractor import extract_relationships, Relationship
 
 
 class TestExtractRelationships:
@@ -14,7 +14,7 @@ class TestExtractRelationships:
             "    inner()\n"
             "    other(42)\n"
         )
-        from ast_chunker import chunk_file
+        from cassetto.ast_chunker import chunk_file
         chunks = chunk_file(str(f))
         rels = extract_relationships(str(f), chunks)
         called = {r.to_symbol_name for r in rels if r.rel_type == 'calls'}
@@ -29,7 +29,7 @@ class TestExtractRelationships:
             "  console.log('hi');\n"
             "}\n"
         )
-        from ast_chunker import chunk_file
+        from cassetto.ast_chunker import chunk_file
         chunks = chunk_file(str(f))
         rels = extract_relationships(str(f), chunks)
         called = {r.to_symbol_name for r in rels if r.rel_type == 'calls'}
@@ -47,7 +47,7 @@ class TestExtractRelationships:
             "  );\n"
             "}\n"
         )
-        from ast_chunker import chunk_file
+        from cassetto.ast_chunker import chunk_file
         chunks = chunk_file(str(f))
         rels = extract_relationships(str(f), chunks)
         renders = {r.to_symbol_name for r in rels if r.rel_type == 'renders'}
@@ -62,7 +62,7 @@ class TestExtractRelationships:
             "class Dog(Animal):\n"
             "    pass\n"
         )
-        from ast_chunker import chunk_file
+        from cassetto.ast_chunker import chunk_file
         chunks = chunk_file(str(f))
         rels = extract_relationships(str(f), chunks)
         extends = {(r.to_symbol_name, r.rel_type) for r in rels}
@@ -71,7 +71,7 @@ class TestExtractRelationships:
     def test_empty_file_no_crash(self, tmp_path):
         f = tmp_path / "empty.py"
         f.write_text("")
-        from ast_chunker import chunk_file
+        from cassetto.ast_chunker import chunk_file
         chunks = chunk_file(str(f))
         rels = extract_relationships(str(f), chunks)
         assert rels == []
@@ -81,7 +81,7 @@ class TestExtractRelationships:
         fpath = os.path.join(sparrow_dir, "src", "api", "wardApi.js")
         if not os.path.exists(fpath):
             import pytest; pytest.skip("sparrow not available")
-        from ast_chunker import chunk_file
+        from cassetto.ast_chunker import chunk_file
         chunks = chunk_file(fpath)
         rels = extract_relationships(fpath, chunks)
         calls = [r for r in rels if r.rel_type == 'calls' and r.to_symbol_name == 'apiFetch']

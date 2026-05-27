@@ -12,14 +12,14 @@ from pathlib import Path
 from watchdog.observers import Observer
 from watchdog.events import FileSystemEventHandler
 
-from ast_chunker import chunk_file, diff_chunks, EXTENSION_MAP
-from store import store_chunks, delete_file_chunks, get_chunks_for_file
-from graph_store import (get_conn as get_graph_conn, upsert_symbol,
+from .ast_chunker import chunk_file, diff_chunks, EXTENSION_MAP
+from .store import store_chunks, delete_file_chunks, get_chunks_for_file
+from .graph_store import (get_conn as get_graph_conn, upsert_symbol,
                          delete_file_symbols, upsert_relationship,
                          resolve_symbol_name, update_pagerank_scores)
-from graph_extractor import extract_relationships
-from embedder import embed_batch, check_embedding_ready
-from config import SKIP_DIRS
+from .graph_extractor import extract_relationships
+from .embedder import embed_batch, check_embedding_ready
+from .config import SKIP_DIRS
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 

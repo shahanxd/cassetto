@@ -3,7 +3,7 @@ Unit tests — Import extractor.
 Tests import parsing across languages.
 """
 import os
-from import_extractor import extract_imports, ImportRelationship
+from cassetto.import_extractor import extract_imports, ImportRelationship
 
 
 class TestPythonImports:

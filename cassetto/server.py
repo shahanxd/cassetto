@@ -6,8 +6,8 @@ plus symbol intelligence, git intelligence, architecture intelligence, and more.
 import os
 import json
 from mcp.server.fastmcp import FastMCP
-from embedder import embed_text, check_embedding_ready
-from store import hybrid_search, get_indexed_files, get_sqlite_conn
+from .embedder import embed_text, check_embedding_ready
+from .store import hybrid_search, get_indexed_files, get_sqlite_conn
 
 PROJECT_ID = os.getenv("CASSETTO_PROJECT_ID", "default")
 
@@ -31,7 +31,7 @@ def search_code(query: str, limit: int = 10) -> str:
     # get graph connection for graph-aware reranking
     graph_conn = None
     try:
-        from graph_store import get_conn
+        from .graph_store import get_conn
         graph_conn = get_conn(PROJECT_ID)
     except Exception:
         pass
@@ -74,7 +74,7 @@ def get_index_status() -> str:
 
     # also check graph stats
     try:
-        from graph_store import get_conn
+        from .graph_store import get_conn
         gc = get_conn(PROJECT_ID)
         sym_count = gc.execute("SELECT COUNT(*) FROM symbols").fetchone()[0]
         rel_count = gc.execute("SELECT COUNT(*) FROM relationships").fetchone()[0]
@@ -105,7 +105,7 @@ def get_call_graph_tool(symbol_name: str) -> str:
     Includes JSX component renders and inheritance relationships.
     Use this to understand the context of a function before modifying it.
     """
-    from graph_store import get_conn, get_call_graph
+    from .graph_store import get_conn, get_call_graph
     conn = get_conn(PROJECT_ID)
     result = get_call_graph(conn, symbol_name)
     conn.close()
@@ -125,7 +125,7 @@ def blast_radius(symbol_name: str) -> str:
     this symbol, up to 3 hops away.
     ALWAYS call this before modifying a function to understand the impact.
     """
-    from graph_store import get_conn, get_blast_radius
+    from .graph_store import get_conn, get_blast_radius
     conn = get_conn(PROJECT_ID)
     result = get_blast_radius(conn, symbol_name)
     conn.close()
@@ -143,7 +143,7 @@ def find_dead_code() -> str:
     Excludes common entry points (main, __init__, test_ functions, route handlers).
     Also excludes overridden methods in class hierarchies.
     """
-    from graph_store import get_conn, get_dead_code
+    from .graph_store import get_conn, get_dead_code
     conn = get_conn(PROJECT_ID)
     results = get_dead_code(conn)
     conn.close()
@@ -162,7 +162,7 @@ def get_repo_map(max_symbols: int = 50) -> str:
     Higher-ranked symbols are referenced by more code and are more central to the architecture.
     Call this at the start of a session to orient yourself in an unfamiliar codebase.
     """
-    from graph_store import get_conn
+    from .graph_store import get_conn
     conn = get_conn(PROJECT_ID)
     results = conn.execute("""
         SELECT name, file, symbol_type, pagerank_score
@@ -191,7 +191,7 @@ def find_references(symbol_name: str) -> str:
     Returns every file and line where this symbol is called, rendered (JSX), or extended.
     Use this to understand how widely used a function is before changing its signature.
     """
-    from graph_store import get_conn, find_references as _find_refs
+    from .graph_store import get_conn, find_references as _find_refs
     conn = get_conn(PROJECT_ID)
     refs = _find_refs(conn, symbol_name)
     conn.close()
@@ -207,7 +207,7 @@ def goto_definition(symbol_name: str) -> str:
     Jump to where a symbol is defined.
     Returns the file, line number, type, and full source code of the definition.
     """
-    from graph_store import get_conn, goto_definition as _goto_def
+    from .graph_store import get_conn, goto_definition as _goto_def
     conn = get_conn(PROJECT_ID)
     result = _goto_def(conn, symbol_name)
     conn.close()
@@ -237,7 +237,7 @@ def find_implementations(class_or_interface: str) -> str:
     Find all classes that extend or implement a given class/interface.
     Use this to understand the full type hierarchy before refactoring a base class.
     """
-    from graph_store import get_conn, find_implementations as _find_impls
+    from .graph_store import get_conn, find_implementations as _find_impls
     conn = get_conn(PROJECT_ID)
     impls = _find_impls(conn, class_or_interface)
     conn.close()
@@ -255,7 +255,7 @@ def explain_symbol(symbol_name: str) -> str:
     references, type hierarchy, and PageRank importance.
     The single best tool for understanding what a function does and why it matters.
     """
-    from graph_store import get_conn, get_symbol_detail
+    from .graph_store import get_conn, get_symbol_detail
     conn = get_conn(PROJECT_ID)
     detail = get_symbol_detail(conn, symbol_name)
     conn.close()
@@ -275,7 +275,7 @@ def get_hotspots(limit: int = 15) -> str:
     These are the files most likely to have bugs and most in need of refactoring.
     Risk score = change_count × number_of_authors.
     """
-    from graph_store import get_conn
+    from .graph_store import get_conn
     conn = get_conn(PROJECT_ID)
     try:
         rows = conn.execute("""
@@ -289,7 +289,7 @@ def get_hotspots(limit: int = 15) -> str:
     if not rows:
         # fall back to live git analysis
         try:
-            from git_intel import get_hotspots as _get_hotspots
+            from .git_intel import get_hotspots as _get_hotspots
             project_dir = _find_project_root()
             if project_dir:
                 hotspots = _get_hotspots(project_dir, limit)
@@ -313,7 +313,7 @@ def get_change_history(file_or_symbol: str) -> str:
     Shows who changed it, when, and what the commit message was.
     Use this to understand the evolution of code before making changes.
     """
-    from git_intel import get_file_history
+    from .git_intel import get_file_history
     project_dir = _find_project_root()
     if not project_dir:
         return "Could not find project root directory."
@@ -324,7 +324,7 @@ def get_change_history(file_or_symbol: str) -> str:
     if not history:
         # try to resolve symbol to file
         try:
-            from graph_store import get_conn, goto_definition
+            from .graph_store import get_conn, goto_definition
             conn = get_conn(PROJECT_ID)
             defn = goto_definition(conn, file_or_symbol)
             conn.close()
@@ -348,7 +348,7 @@ def get_ownership(file_or_symbol: str) -> str:
     Find who owns a piece of code — the contributor with the most commits.
     Use this to know who to ask about code you don't understand.
     """
-    from git_intel import get_ownership as _get_ownership
+    from .git_intel import get_ownership as _get_ownership
     project_dir = _find_project_root()
     if not project_dir:
         return "Could not find project root directory."
@@ -378,7 +378,7 @@ def get_change_coupling(file_path: str) -> str:
     If file A always changes when file B changes, they're coupled —
     even if there's no import between them. This reveals hidden dependencies.
     """
-    from graph_store import get_conn, get_change_coupling_for_file
+    from .graph_store import get_conn, get_change_coupling_for_file
     conn = get_conn(PROJECT_ID)
     results = get_change_coupling_for_file(conn, file_path)
     conn.close()
@@ -401,8 +401,8 @@ def get_architecture_summary() -> str:
     (controllers/services/models), finds entry points, and ranks the most
     important symbols. Call this first when working with an unfamiliar codebase.
     """
-    from architecture import generate_architecture_summary
-    from store import get_indexed_files
+    from .architecture import generate_architecture_summary
+    from .store import get_indexed_files
 
     files = get_indexed_files(PROJECT_ID)
     if not files:
@@ -414,7 +414,7 @@ def get_architecture_summary() -> str:
 
     graph_conn = None
     try:
-        from graph_store import get_conn
+        from .graph_store import get_conn
         graph_conn = get_conn(PROJECT_ID)
     except Exception:
         pass
@@ -434,8 +434,8 @@ def find_entry_points() -> str:
     exported components, test files. These are where execution starts.
     Use this to understand how a codebase is structured.
     """
-    from architecture import find_entry_points as _find_entries
-    from store import get_indexed_files
+    from .architecture import find_entry_points as _find_entries
+    from .store import get_indexed_files
 
     files = get_indexed_files(PROJECT_ID)
     project_dir = _find_project_root()
@@ -468,7 +468,7 @@ def get_imports(file_or_symbol: str) -> str:
     Show what a file imports and what imports it.
     Use this to understand module dependencies before refactoring.
     """
-    from graph_store import (get_conn, get_imports_for_file,
+    from .graph_store import (get_conn, get_imports_for_file,
                              get_importers_of)
     conn = get_conn(PROJECT_ID)
     imports = get_imports_for_file(conn, file_or_symbol)
@@ -502,7 +502,7 @@ def find_cycles() -> str:
     Circular dependencies are architectural debt — A imports B imports C imports A.
     Returns all cycles found, sorted by length.
     """
-    from graph_store import get_conn, find_cycles as _find_cycles
+    from .graph_store import get_conn, find_cycles as _find_cycles
     conn = get_conn(PROJECT_ID)
     cycles = _find_cycles(conn)
     conn.close()

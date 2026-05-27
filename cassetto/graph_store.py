@@ -16,7 +16,7 @@ import hashlib
 import json
 import duckdb
 from pathlib import Path
-from config import DATA_DIR
+from .config import DATA_DIR
 
 
 def get_conn(project_id: str) -> duckdb.DuckDBPyConnection:

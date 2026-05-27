@@ -10,7 +10,7 @@ import sqlite3
 import time
 import lancedb
 from pathlib import Path
-from config import DATA_DIR
+from .config import DATA_DIR
 
 
 def get_project_dir(project_id: str) -> Path:
@@ -170,7 +170,7 @@ def hybrid_search(project_id: str, query: str, embedding: list[float],
     # ── graph-aware reranking ──────────────────────────────────
     if graph_conn and scores:
         try:
-            from graph_store import get_graph_neighbors
+            from .graph_store import get_graph_neighbors
             # get the top 3 results so far
             top_ids = sorted(scores, key=lambda x: scores[x], reverse=True)[:3]
             top_symbols = set()

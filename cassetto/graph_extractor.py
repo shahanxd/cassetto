@@ -11,7 +11,7 @@ actual symbol IDs later in the indexer, once all symbols are stored.
 """
 from dataclasses import dataclass
 from pathlib import Path
-from ast_chunker import EXTENSION_MAP, Chunk
+from .ast_chunker import EXTENSION_MAP, Chunk
 
 
 @dataclass

@@ -13,22 +13,22 @@ from pathlib import Path
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-from config import SKIP_DIRS, SUPPORTED_EXTENSIONS, GIT_ENABLED
+from .config import SKIP_DIRS, SUPPORTED_EXTENSIONS, GIT_ENABLED
 
 
 def index_directory(directory: str, project_id: str, force: bool = False):
     """Full index of a directory: parse, embed, store, build graph."""
-    from ast_chunker import chunk_file
-    from embedder import embed_batch, check_embedding_ready
-    from store import (store_chunks, delete_file_chunks, update_file_metadata,
+    from .ast_chunker import chunk_file
+    from .embedder import embed_batch, check_embedding_ready
+    from .store import (store_chunks, delete_file_chunks, update_file_metadata,
                        get_file_metadata)
-    from graph_store import (get_conn as get_graph_conn, upsert_symbol,
+    from .graph_store import (get_conn as get_graph_conn, upsert_symbol,
                              upsert_relationship, delete_file_symbols,
                              delete_file_imports, upsert_import,
                              resolve_symbol_name, update_pagerank_scores,
                              store_git_churn, store_git_coupling)
-    from graph_extractor import extract_relationships
-    from import_extractor import extract_imports, resolve_import_to_file
+    from .graph_extractor import extract_relationships
+    from .import_extractor import extract_imports, resolve_import_to_file
 
     ok, msg = check_embedding_ready()
     if not ok:
@@ -146,7 +146,7 @@ def index_directory(directory: str, project_id: str, force: bool = False):
         if imp.is_relative or not imp.module.startswith(('.', '/')):
             target = resolve_import_to_file(imp.module, imp.file, all_files)
             if target:
-                from graph_store import update_import_resolved
+                from .graph_store import update_import_resolved
                 imp_id = hashlib.sha256(
                     f"{imp.file}:{imp.module}:{imp.line}".encode()
                 ).hexdigest()[:16]
@@ -160,7 +160,7 @@ def index_directory(directory: str, project_id: str, force: bool = False):
 
     # ── Git intelligence ──
     if GIT_ENABLED:
-        from git_intel import is_git_repo, get_file_churn, get_change_coupling
+        from .git_intel import is_git_repo, get_file_churn, get_change_coupling
         if is_git_repo(str(root)):
             print("Analyzing git history...")
             churn = get_file_churn(str(root))
@@ -182,8 +182,8 @@ def index_directory(directory: str, project_id: str, force: bool = False):
 
 def search(project_id: str, query: str, limit: int = 10):
     """Quick CLI search for testing."""
-    from embedder import embed_text, check_embedding_ready
-    from store import hybrid_search
+    from .embedder import embed_text, check_embedding_ready
+    from .store import hybrid_search
 
     ok, msg = check_embedding_ready()
     if not ok:
@@ -337,7 +337,7 @@ def main():
 
     elif args.command == 'watch':
         pid = args.project or _default_project_id(args.directory)
-        from watcher import watch
+        from .watcher import watch
         watch(args.directory, pid)
 
     elif args.command == 'setup':

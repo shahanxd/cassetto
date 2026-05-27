@@ -5,7 +5,7 @@ Tests the core code-parsing layer that all other modules depend on.
 import os
 import tempfile
 from pathlib import Path
-from ast_chunker import chunk_file, EXTENSION_MAP, Chunk
+from cassetto.ast_chunker import chunk_file, EXTENSION_MAP, Chunk
 
 
 class TestExtensionMap:

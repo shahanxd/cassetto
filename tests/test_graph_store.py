@@ -5,14 +5,14 @@ Tests the persistence layer: symbol storage, relationships, queries.
 import os
 import shutil
 import pytest
-from graph_store import (
+from cassetto.graph_store import (
     get_conn, upsert_symbol, upsert_relationship, delete_file_symbols,
     update_pagerank_scores, get_dead_code, get_call_graph,
     resolve_symbol_name, upsert_import, get_blast_radius,
 )
-from ast_chunker import Chunk
-from import_extractor import ImportRelationship
-from config import DATA_DIR
+from cassetto.ast_chunker import Chunk
+from cassetto.import_extractor import ImportRelationship
+from cassetto.config import DATA_DIR
 
 
 def _make_chunk(chunk_id, name, file, start=0, end=5, text=""):
