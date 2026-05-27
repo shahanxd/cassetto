@@ -20,6 +20,9 @@ class TestExtensionMap:
         assert '.ts' in EXTENSION_MAP
         assert '.tsx' in EXTENSION_MAP
 
+    def test_vue_supported(self):
+        assert EXTENSION_MAP['.vue'] == 'vue'
+
     def test_unsupported_returns_none(self):
         assert '.txt' not in EXTENSION_MAP
         assert '.md' not in EXTENSION_MAP
@@ -52,6 +55,28 @@ class TestChunkFile:
         f.write_text("function MyComponent() {\n  return <div>Hello</div>;\n}\n")
         chunks = chunk_file(str(f))
         assert any(c.symbol == "MyComponent" for c in chunks)
+
+    def test_vue_single_file_component_blocks(self, tmp_path):
+        f = tmp_path / "Counter.vue"
+        f.write_text(
+            "<template>\n"
+            "  <button @click=\"increment\">{{ count }}</button>\n"
+            "</template>\n"
+            "<script setup lang=\"ts\">\n"
+            "import { ref } from 'vue'\n"
+            "const count = ref(0)\n"
+            "function increment() {\n"
+            "  count.value += 1\n"
+            "}\n"
+            "</script>\n"
+        )
+
+        chunks = chunk_file(str(f))
+        symbols = {c.symbol for c in chunks}
+
+        assert "template" in symbols
+        assert "script" in symbols
+        assert all(c.language == "vue" for c in chunks)
 
     def test_empty_file(self, tmp_path):
         f = tmp_path / "empty.py"
