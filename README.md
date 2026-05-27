@@ -1,66 +1,163 @@
-# Cassetto
+# Cassetto 🧠
 
-**Give your LLM structural awareness of any codebase via MCP.**
+**Give your AI assistant structural awareness of any codebase.**
 
-Cassetto is a local-first code intelligence server that connects to AI coding assistants (Antigravity, Claude, Cursor) through the [Model Context Protocol](https://modelcontextprotocol.io/). It indexes your codebase into semantic search + call graphs + import graphs, then exposes 18 tools your LLM calls automatically to answer code questions with real structural intelligence.
+[![PyPI](https://img.shields.io/pypi/v/cassetto?color=6366f1)](https://pypi.org/project/cassetto/)
+[![Tests](https://img.shields.io/github/actions/workflow/status/shahanxd/cassetto/test.yml?label=tests)](https://github.com/shahanxd/cassetto/actions)
+[![License](https://img.shields.io/badge/license-Apache%202.0-blue)](LICENSE)
+[![Python](https://img.shields.io/pypi/pyversions/cassetto)](https://pypi.org/project/cassetto/)
 
-**Eval results** (Llama 3.2, 10-question benchmark, React+Django project):
-- LLM + project files in context: 17.5% accuracy
-- LLM + Cassetto: **76.7% accuracy** (4.4x uplift, 10-0 wins)
+<!-- TODO: Replace with your demo recording -->
+<!-- ![Cassetto Demo](demo.gif) -->
 
 ---
 
-## Setup (3 steps)
+## The Problem
 
-### Prerequisites
-- **Python 3.11+**
-- **Ollama** running locally: https://ollama.com
-- **Git** installed
+Your AI coding assistant can see your open files. It **cannot** see your architecture, call graph, or which functions break if you change something. It guesses — and gets it wrong.
 
-### Step 1: Install
+## The Solution
+
+Cassetto indexes your codebase into a **call graph + vector database + keyword index** and serves 18 intelligence tools to your AI via [MCP](https://modelcontextprotocol.io/). Three commands, 60 seconds, everything local.
 
 ```bash
 pip install cassetto
-```
-
-Pull the embedding model:
-```bash
 ollama pull nomic-embed-text
+cassetto index . && cassetto setup
 ```
 
-### Step 2: Index your project
+That's it. Your AI now calls Cassetto tools **automatically** — you just talk normally.
+
+---
+
+## What Changes
+
+| You ask | Without Cassetto | With Cassetto |
+|---|---|---|
+| "What breaks if I refactor `auth`?" | Guesses from nearby code | **10 exact callers with file:line** |
+| "What are the riskiest files?" | Can't know | **Ranked by git churn × PageRank** |
+| "Show me `getColor` source" | Searches through files | **Jumps to exact line, 26ms** |
+| "Find dead code" | Can't do cross-file analysis | **Lists unused functions, 20ms** |
+| "Trace the data pipeline" | Struggles with cross-file flow | **Call graph + import graph** |
+
+## Benchmarks
+
+Tested on a React + Django project (52 files, 129 symbols):
+
+| Metric | Score |
+|---|---|
+| Tool Precision | **92%** |
+| Tool Recall | **91%** |
+| Search MRR (vs keyword baseline) | **0.475 vs 0.350 (1.4× uplift)** |
+| `blast_radius` latency | **26ms** |
+| `find_dead_code` latency | **20ms** |
+| Index throughput | **14.6 files/sec** |
+| Head-to-head vs keyword (7 questions) | **Cassetto 5 – 1** |
+
+Full benchmark report with raw outputs: [`eval/benchmark_report.html`](eval/benchmark_report.html)
+
+---
+
+## Setup
+
+### Prerequisites
+
+- **Python 3.11+**
+- **[Ollama](https://ollama.com)** running locally
+- **Git** installed
+
+### Install & Index
 
 ```bash
+pip install cassetto
+ollama pull nomic-embed-text
+
 cd /path/to/your/project
 cassetto index .
 ```
 
 This parses all source files, generates embeddings, builds call/import graphs, analyzes git history, and stores everything locally in `~/.cassetto/`.
 
-### Step 3: Connect to your AI assistant
+### Connect to Your AI
 
 ```bash
 cassetto setup
 ```
 
-This auto-configures MCP for every AI assistant it finds on your system (Antigravity, Claude Desktop, Cursor). Restart your assistant and you're done.
-
-That's it. Just talk to your AI normally — it calls Cassetto tools automatically.
+Auto-configures MCP for **Antigravity (Gemini/Claude)**, **Claude Desktop**, and **Cursor**. Restart your assistant and you're done.
 
 ---
 
-## What changes
+## All 18 Tools
 
-Without Cassetto, your AI can only read files. With Cassetto, it can:
+Your AI calls these automatically. You never need to know they exist.
 
-| You ask | Without Cassetto | With Cassetto |
-|---|---|---|
-| "What breaks if I refactor `auth`?" | Guesses from nearby code | **10 exact callers with file:line** |
-| "What are the riskiest files?" | Can't know | **Ranked by git churn x authors** |
-| "Show me `getColor` source code" | Searches through files | **Jumps to exact line instantly** |
-| "Find dead code" | Can't do cross-file analysis | **Lists unused functions** |
-| "What frameworks does this use?" | Infers from filenames | **Auto-detected: React + Django** |
-| "Trace the data pipeline" | Struggles with cross-file flow | **Call graph + import graph** |
+### Search
+| Tool | What it does |
+|---|---|
+| `search_code` | Hybrid BM25 + semantic search with graph-aware reranking |
+| `get_repo_map` | PageRank-ranked map of the most important symbols |
+
+### Symbol Intelligence
+| Tool | What it does |
+|---|---|
+| `find_references` | All callers/renderers/extenders of a symbol |
+| `goto_definition` | Jump to where a symbol is defined, with full source |
+| `find_implementations` | Classes that extend a base class |
+| `explain_symbol` | Deep profile: definition + callers + callees + PageRank |
+
+### Graph Analysis
+| Tool | What it does |
+|---|---|
+| `get_call_graph` | What calls this function and what it calls |
+| `blast_radius` | Everything that transitively depends on a symbol |
+| `find_dead_code` | Unreferenced functions (safe to delete) |
+| `find_cycles` | Circular dependencies in the import graph |
+
+### Git Intelligence
+| Tool | What it does |
+|---|---|
+| `get_hotspots` | Riskiest files (high churn × many authors) |
+| `get_change_history` | Git log per file |
+| `get_ownership` | Who owns each file |
+| `get_change_coupling` | Files that always change together |
+
+### Architecture
+| Tool | What it does |
+|---|---|
+| `get_architecture_summary` | Frameworks, layers, entry points |
+| `find_entry_points` | Main files, routes, CLI commands |
+| `get_imports` | Module dependency graph |
+| `get_index_status` | Index health check |
+
+---
+
+## How It Works
+
+```
+Your Code → tree-sitter AST → Chunks (functions, classes)
+                                  ↓
+                    ┌─────────────┼─────────────┐
+                    ↓             ↓             ↓
+              LanceDB        SQLite FTS5     DuckDB
+            (vectors)        (keywords)    (call graph)
+                    ↓             ↓             ↓
+                    └─────────────┼─────────────┘
+                                  ↓
+                        MCP Server (18 tools)
+                                  ↓
+                        Your AI Assistant
+```
+
+1. **AST Parsing** (tree-sitter) — Extracts functions, classes, methods as structured chunks across 13 languages
+2. **Embeddings** (Ollama) — 768-dim semantic vectors for each chunk
+3. **Hybrid Search** (LanceDB + SQLite) — Vector similarity + BM25 keyword matching, merged with Reciprocal Rank Fusion
+4. **Call Graph** (DuckDB) — Who-calls-what, component renders, class inheritance, with PageRank scoring
+5. **Import Graph** — Module dependencies, resolved to actual file paths
+6. **Git Intelligence** — Churn rates, ownership, change coupling from git history
+7. **MCP Server** (FastMCP) — Exposes everything as tools via JSON-RPC over stdio
+
+Everything runs locally. No cloud, no API keys required.
 
 ---
 
@@ -76,44 +173,6 @@ cassetto search "auth flow"    # Quick search from terminal
 cassetto watch .               # Watch for changes, re-index live
 ```
 
-The `--project` / `-p` flag is optional everywhere. Defaults to the folder name.
-
----
-
-## All 18 Tools
-
-Your AI calls these automatically. You never need to know they exist.
-
-### Code Search
-- **`search_code`** — Hybrid BM25 + semantic search with graph-aware reranking
-- **`get_repo_map`** — PageRank-ranked map of the most important symbols
-
-### Symbol Intelligence
-- **`find_references`** — All callers/renderers/extenders of a symbol
-- **`goto_definition`** — Jump to source with full code
-- **`find_implementations`** — Classes extending a base class
-- **`explain_symbol`** — Deep dive: definition + callers + callees + PageRank
-
-### Graph Analysis
-- **`get_call_graph`** — What calls this function and what it calls
-- **`blast_radius`** — Everything that transitively depends on a symbol
-- **`find_dead_code`** — Unreferenced functions (candidates for deletion)
-- **`find_cycles`** — Circular dependencies in the import graph
-
-### Git Intelligence
-- **`get_hotspots`** — Riskiest files (high churn x many authors)
-- **`get_change_history`** — Git log per file/symbol
-- **`get_ownership`** — Who wrote this code
-- **`get_change_coupling`** — Files that always change together
-
-### Architecture
-- **`get_architecture_summary`** — Frameworks, layers, entry points, top symbols
-- **`find_entry_points`** — Routes, main functions, CLI commands
-- **`get_imports`** — Module dependency graph
-- **`get_index_status`** — Index health check
-
----
-
 ## Configuration
 
 | Variable | Default | Description |
@@ -126,20 +185,12 @@ Your AI calls these automatically. You never need to know they exist.
 
 ## Supported Languages
 
-Python, JavaScript, TypeScript, JSX, TSX, Go, Rust, Java, Ruby, PHP, C#, C, C++
+Python · JavaScript · TypeScript · JSX · TSX · Go · Rust · Java · Ruby · PHP · C# · C · C++
 
-## How it works
+## Contributing
 
-1. **AST Parsing** (tree-sitter) — Extracts functions, classes, methods as structured chunks
-2. **Embeddings** (Ollama/Voyage) — Generates semantic vectors for each chunk
-3. **Call Graph** (DuckDB) — Tracks who-calls-what, component renders, class inheritance
-4. **Import Graph** — Maps module dependencies across 12 languages
-5. **Git Analysis** — Churn rates, ownership, change coupling from git history
-6. **PageRank** — Ranks symbols by structural importance
-7. **MCP Server** (FastMCP) — Exposes all intelligence as tools via stdio protocol
-
-Everything runs locally. No cloud, no API keys required (unless using Voyage embeddings).
+We welcome contributions! See [CONTRIBUTING.md](CONTRIBUTING.md) for setup instructions and [Good First Issues](https://github.com/shahanxd/cassetto/labels/good%20first%20issue) if you're looking for a place to start.
 
 ## License
 
-MIT
+[Apache 2.0](LICENSE)

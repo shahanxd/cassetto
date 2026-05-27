@@ -7,7 +7,7 @@ name = "cassetto"
 version = "1.0.0"
 description = "Give your LLM structural awareness of any codebase via MCP"
 readme = "README.md"
-license = "MIT"
+license = "Apache-2.0"
 requires-python = ">=3.11"
 authors = [{name = "Shahan"}]
 keywords = ["mcp", "code-intelligence", "tree-sitter", "semantic-search", "call-graph", "claude"]
