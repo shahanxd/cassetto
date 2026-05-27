@@ -9,11 +9,20 @@ import sys
 import time
 import hashlib
 import argparse
+import json
+from dataclasses import dataclass
 from pathlib import Path
 
 sys.stdout.reconfigure(encoding='utf-8', errors='replace')
 
-from .config import SKIP_DIRS, SUPPORTED_EXTENSIONS, GIT_ENABLED
+from .config import SKIP_DIRS, SUPPORTED_EXTENSIONS, GIT_ENABLED, DATA_DIR
+
+
+@dataclass
+class DoctorCheck:
+    name: str
+    ok: bool
+    detail: str
 
 
 def index_directory(directory: str, project_id: str, force: bool = False):
@@ -279,6 +288,119 @@ def setup_mcp(project_id: str, server_path: str):
         print(_json.dumps({"cassetto": mcp_entry}, indent=2))
 
 
+def _mcp_configured() -> tuple[bool, str]:
+    """Return whether any known MCP config already contains Cassetto."""
+    candidates = [
+        Path.home() / ".gemini" / "antigravity" / "mcp_config.json",
+        Path.home() / ".claude" / "settings.json",
+        Path.home() / ".cursor" / "mcp.json",
+    ]
+    for cfg in candidates:
+        if not cfg.exists():
+            continue
+        try:
+            data = json.loads(cfg.read_text())
+        except Exception:
+            continue
+        if not isinstance(data, dict):
+            continue
+        servers = data.get("mcpServers", data)
+        if isinstance(servers, dict) and "cassetto" in servers:
+            return True, f"configured in {cfg}"
+
+    return False, "not found in known MCP config files"
+
+
+def _embedding_model_available() -> tuple[bool, str]:
+    """Check whether the configured local Ollama model is present."""
+    from .config import EMBEDDING_BACKEND, OLLAMA_MODEL, OLLAMA_URL
+
+    if EMBEDDING_BACKEND == "voyage":
+        return True, "Voyage backend selected; local Ollama model not required"
+
+    try:
+        import requests
+        response = requests.get(f"{OLLAMA_URL}/api/tags", timeout=5)
+        response.raise_for_status()
+        models = response.json().get("models", [])
+    except Exception as e:
+        return False, f"could not read Ollama models: {e}"
+
+    names = {
+        model.get("name", "")
+        for model in models
+        if isinstance(model, dict)
+    }
+    base_names = {name.split(":", 1)[0] for name in names}
+    if OLLAMA_MODEL in names or OLLAMA_MODEL in base_names:
+        return True, f"{OLLAMA_MODEL} is available"
+
+    return False, f"{OLLAMA_MODEL} is not pulled"
+
+
+def collect_doctor_checks(project_id: str, directory: str = ".") -> list[DoctorCheck]:
+    """Collect read-only setup checks for the current Cassetto project."""
+    checks = []
+
+    from .embedder import check_embedding_ready
+    ok, msg = check_embedding_ready()
+    checks.append(DoctorCheck("Embedding backend", ok, msg))
+
+    ok, msg = _embedding_model_available()
+    checks.append(DoctorCheck("Embedding model", ok, msg))
+
+    project_dir = DATA_DIR / project_id
+    index_db = project_dir / "index.db"
+    if index_db.exists():
+        from .store import get_indexed_files
+        indexed_files = get_indexed_files(project_id)
+        checks.append(DoctorCheck(
+            "Code index",
+            bool(indexed_files),
+            f"{len(indexed_files)} indexed files"
+        ))
+    else:
+        checks.append(DoctorCheck(
+            "Code index",
+            False,
+            f"no index found for {Path(directory).resolve()}"
+        ))
+
+    graph_db = project_dir / "graph.duckdb"
+    if graph_db.exists():
+        try:
+            from .graph_store import get_conn
+            conn = get_conn(project_id)
+            conn.execute("SELECT 1").fetchone()
+            conn.close()
+            checks.append(DoctorCheck("DuckDB graph", True, "graph is accessible"))
+        except Exception as e:
+            checks.append(DoctorCheck("DuckDB graph", False, f"not accessible: {e}"))
+    else:
+        checks.append(DoctorCheck("DuckDB graph", False, "graph database not found"))
+
+    ok, msg = _mcp_configured()
+    checks.append(DoctorCheck("MCP config", ok, msg))
+    return checks
+
+
+def doctor(project_id: str, directory: str = ".") -> int:
+    """Print a setup checklist and return a process-style status code."""
+    print(f"Cassetto doctor (project: {project_id})")
+    checks = collect_doctor_checks(project_id, directory)
+    for check in checks:
+        status = "OK" if check.ok else "FAIL"
+        print(f"[{status}] {check.name}: {check.detail}")
+
+    if all(check.ok for check in checks):
+        print("\nAll checks passed.")
+        return 0
+
+    print("\nSome checks need attention.")
+    print("Try: cassetto index .  |  cassetto setup  |  cassetto watch .")
+    return 1
+
+
 def _default_project_id(directory: str = ".") -> str:
     """Derive project ID from folder name."""
     return Path(directory).resolve().name.lower().replace(" ", "-")
@@ -317,6 +439,14 @@ def main():
     stp.add_argument('--project', '-p', default=None,
                      help='Project ID (default: current folder name)')
 
+    # doctor
+    doc = subparsers.add_parser('doctor',
+        help='Check embedding, index, graph, and MCP setup health')
+    doc.add_argument('directory', nargs='?', default='.',
+                     help='Directory to check (default: current directory)')
+    doc.add_argument('--project', '-p', default=None,
+                     help='Project ID (default: folder name)')
+
     # serve
     srv = subparsers.add_parser('serve', help='Start the MCP server')
     srv.add_argument('--project', '-p', default=None,
@@ -345,6 +475,10 @@ def main():
         server_path = str(Path(__file__).parent / "server.py")
         setup_mcp(pid, server_path)
 
+    elif args.command == 'doctor':
+        pid = args.project or _default_project_id(args.directory)
+        sys.exit(doctor(pid, args.directory))
+
     elif args.command == 'serve':
         pid = args.project or _default_project_id()
         import os
@@ -360,6 +494,7 @@ def main():
         parser.print_help()
         print("\nQuick start:")
         print("  cassetto index .          # index current directory")
+        print("  cassetto doctor           # check local setup health")
         print("  cassetto setup            # auto-configure MCP")
         print("  cassetto serve            # start MCP server manually")
 
